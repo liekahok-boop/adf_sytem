@@ -1,0 +1,44 @@
+# XAMPP default files
+/dashboard/
+/xampp/
+/webalizer/
+/img/
+applications.html
+bitnami.css
+favicon.ico
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# CodeIgniter specific
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/uploads/*
+!writable/cache/index.html
+!writable/logs/index.html
+!writable/session/index.html
+!writable/uploads/index.html
+
+# Composer
+vendor/
+composer.lock
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*~
