@@ -3,6 +3,7 @@ require_once '../../config/config.php';
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/business_helper.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -39,6 +40,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['trial_expires_at'] = date('Y-m-d H:i:s', strtotime("+{$days} days"));
             }
             
+            // Handle business access
+            if (isset($_POST['business_access']) && is_array($_POST['business_access'])) {
+                $data['business_access'] = json_encode(array_values($_POST['business_access']));
+            } else {
+                // Owner & admin get all access by default
+                if (in_array($_POST['role'], ['owner', 'admin'])) {
+                    require_once '../../includes/business_helper.php';
+                    $allBusinesses = getAvailableBusinesses();
+                    $businessIds = array_column($allBusinesses, 'id');
+                    $data['business_access'] = json_encode($businessIds);
+                } else {
+                    $data['business_access'] = json_encode([]);
+                }
+            }
+            
             // Hash password
             if (!empty($_POST['password'])) {
                 $data['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
@@ -71,6 +87,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (!isset($_POST['is_trial'])) {
                 // Reset trial if unchecked
                 $data['trial_expires_at'] = null;
+            }
+            
+            // Handle business access
+            if (isset($_POST['business_access']) && is_array($_POST['business_access'])) {
+                $data['business_access'] = json_encode(array_values($_POST['business_access']));
+            } else {
+                // Owner & admin get all access by default
+                if (in_array($_POST['role'], ['owner', 'admin'])) {
+                    require_once '../../includes/business_helper.php';
+                    $allBusinesses = getAvailableBusinesses();
+                    $businessIds = array_column($allBusinesses, 'id');
+                    $data['business_access'] = json_encode($businessIds);
+                } else {
+                    $data['business_access'] = json_encode([]);
+                }
             }
             
             // Only update password if provided
@@ -116,12 +147,20 @@ if ($action === 'delete' && $id > 0) {
 // Get user for edit
 $editUser = null;
 $userPermissions = [];
+$userBusinessAccess = [];
 if ($action === 'edit' && $id > 0) {
     $editUser = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$id]);
     // Get user permissions
     $permRows = $db->fetchAll("SELECT permission_key FROM user_permissions WHERE user_id = ?", [$id]);
     $userPermissions = array_column($permRows, 'permission_key');
+    // Get business access
+    if (!empty($editUser['business_access'])) {
+        $userBusinessAccess = json_decode($editUser['business_access'], true) ?: [];
+    }
 }
+
+// Get all available businesses
+$allBusinesses = getAvailableBusinesses();
 
 // Get all users
 $users = $db->fetchAll("SELECT * FROM users ORDER BY full_name");
@@ -307,6 +346,67 @@ include '../../includes/header.php';
                 </div>
             </div>
             
+            <!-- Business Access Checkboxes -->
+            <div style="padding: 1rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(34, 197, 94, 0.05)); border-radius: 8px; border: 1px solid var(--bg-tertiary);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-feather="briefcase" style="width: 18px; height: 18px; color: var(--success);"></i>
+                        <h4 style="margin: 0; font-size: 0.938rem; font-weight: 700; color: var(--text-primary);">
+                            Hak Akses Bisnis
+                        </h4>
+                    </div>
+                    <button type="button" onclick="toggleAllBusinesses(this)" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+                        <i data-feather="check-square" style="width: 12px; height: 12px;"></i> Pilih Semua
+                    </button>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem 0;">
+                    Pilih bisnis mana yang dapat diakses oleh user ini. Owner & Admin secara otomatis mendapat akses ke semua bisnis.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                    <?php foreach ($allBusinesses as $business): ?>
+                        <label style="display: flex; align-items: start; gap: 0.75rem; padding: 0.875rem; background: var(--bg-primary); border: 1px solid var(--bg-tertiary); border-radius: 6px; cursor: pointer; transition: all 0.2s;" 
+                               onmouseover="this.style.borderColor='var(--success)'; this.style.background='var(--bg-secondary)';" 
+                               onmouseout="this.style.borderColor='var(--bg-tertiary)'; this.style.background='var(--bg-primary)';">
+                            <input type="checkbox" name="business_access[]" value="<?php echo $business['id']; ?>" 
+                                   <?php echo in_array($business['id'], $userBusinessAccess) ? 'checked' : ''; ?>
+                                   class="business-checkbox"
+                                   style="width: 18px; height: 18px; margin-top: 0.125rem; flex-shrink: 0;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem;">
+                                    <img src="<?php echo getBusinessLogo($business['id']); ?>" 
+                                         alt="<?php echo $business['name']; ?>" 
+                                         style="width: 24px; height: 24px; object-fit: contain; border-radius: 4px;">
+                                    <span style="font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">
+                                        <?php echo $business['name']; ?>
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                                    <?php 
+                                    $typeLabels = [
+                                        'hotel' => '🏨 Hotel Management',
+                                        'restaurant' => '🍽️ Restaurant & Cafe',
+                                        'manufacturing' => '🏭 Manufacturing',
+                                        'furniture' => '🪑 Furniture Production',
+                                        'cafe' => '☕ Coffee Shop',
+                                        'tourism' => '⛵ Tourism & Boat Services'
+                                    ];
+                                    echo $typeLabels[$business['type']] ?? $business['type'];
+                                    ?>
+                                </div>
+                            </div>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                
+                <div style="margin-top: 0.75rem; padding: 0.625rem; background: rgba(59, 130, 246, 0.1); border-radius: 6px; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-feather="info" style="width: 14px; height: 14px; color: var(--primary-color);"></i>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                        User hanya dapat melihat dan mengakses bisnis yang dipilih di dropdown header. Jika tidak ada bisnis yang dipilih, user tidak dapat login.
+                    </span>
+                </div>
+            </div>
+            
             <div style="display: flex; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--bg-tertiary);">
                 <button type="submit" class="btn btn-primary btn-sm">
                     <i data-feather="save" style="width: 14px; height: 14px;"></i> Simpan
@@ -333,6 +433,7 @@ include '../../includes/header.php';
                         <th>Role</th>
                         <th>Status</th>
                         <th>Trial</th>
+                        <th>Business Access</th>
                         <th>Permissions</th>
                         <th style="text-align: center;">Aksi</th>
                     </tr>
@@ -343,6 +444,12 @@ include '../../includes/header.php';
                         // Get user permissions
                         $userPerms = $db->fetchAll("SELECT permission_key FROM user_permissions WHERE user_id = ?", [$user['id']]);
                         $permKeys = array_column($userPerms, 'permission_key');
+                        
+                        // Get business access
+                        $businessAccess = [];
+                        if (!empty($user['business_access'])) {
+                            $businessAccess = json_decode($user['business_access'], true) ?: [];
+                        }
                         ?>
                         <tr>
                             <td>
@@ -391,6 +498,41 @@ include '../../includes/header.php';
                                     </div>
                                 <?php else: ?>
                                     <span style="color: var(--text-muted); font-size: 0.875rem;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (empty($businessAccess)): ?>
+                                    <span style="font-size: 0.75rem; color: var(--danger);">
+                                        <i data-feather="alert-circle" style="width: 12px; height: 12px; vertical-align: middle;"></i>
+                                        No Access
+                                    </span>
+                                <?php elseif ($user['role'] === 'owner' || $user['role'] === 'admin'): ?>
+                                    <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">
+                                        <i data-feather="check-circle" style="width: 12px; height: 12px; vertical-align: middle;"></i>
+                                        All Businesses
+                                    </span>
+                                <?php else: ?>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 180px;">
+                                        <?php 
+                                        $businessMap = array_column($allBusinesses, 'name', 'id');
+                                        foreach ($businessAccess as $bizId): 
+                                            if (isset($businessMap[$bizId])):
+                                        ?>
+                                            <span style="font-size: 0.688rem; padding: 0.125rem 0.375rem; background: rgba(16, 185, 129, 0.1); color: var(--success); border-radius: 4px; white-space: nowrap;" title="<?php echo $businessMap[$bizId]; ?>">
+                                                <?php 
+                                                // Shorten name for display
+                                                $shortName = $businessMap[$bizId];
+                                                if (strlen($shortName) > 15) {
+                                                    $shortName = substr($shortName, 0, 12) . '...';
+                                                }
+                                                echo $shortName;
+                                                ?>
+                                            </span>
+                                        <?php 
+                                            endif;
+                                        endforeach; 
+                                        ?>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -455,6 +597,27 @@ include '../../includes/header.php';
         } else {
             input.type = 'password';
             icon.setAttribute('data-feather', 'eye');
+        }
+        feather.replace();
+    }
+    
+    function toggleAllBusinesses(button) {
+        const checkboxes = document.querySelectorAll('.business-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+        
+        // Update button text
+        const icon = button.querySelector('i');
+        const text = button.childNodes[1];
+        if (allChecked) {
+            icon.setAttribute('data-feather', 'check-square');
+            button.innerHTML = '<i data-feather="check-square" style="width: 12px; height: 12px;"></i> Pilih Semua';
+        } else {
+            icon.setAttribute('data-feather', 'x-square');
+            button.innerHTML = '<i data-feather="x-square" style="width: 12px; height: 12px;"></i> Hapus Semua';
         }
         feather.replace();
     }
