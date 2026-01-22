@@ -106,7 +106,7 @@
                     </li>
                     <?php endif; ?>
                     
-                    <?php if ($auth->hasPermission('frontdesk')): ?>
+                    <?php if ($auth->hasPermission('frontdesk') && isModuleEnabled('frontdesk')): ?>
                     <li class="nav-item">
                         <a href="<?php echo BASE_URL; ?>/modules/frontdesk/" class="nav-link <?php echo activeMenu('frontdesk'); ?>">
                             <i data-feather="home" class="nav-icon"></i>
@@ -116,7 +116,7 @@
                     <?php endif; ?>
                     
                     <!-- Sales Invoice Menu -->
-                    <?php if ($auth->hasPermission('sales_invoice')): ?>
+                    <?php if ($auth->hasPermission('sales_invoice') && isModuleEnabled('sales')): ?>
                     <li class="nav-item">
                         <a href="<?php echo BASE_URL; ?>/modules/sales/" class="nav-link <?php echo activeMenu('sales'); ?>">
                             <i data-feather="file-text" class="nav-icon"></i>
@@ -126,7 +126,7 @@
                     <?php endif; ?>
                     
                     <!-- Procurement Dropdown Menu -->
-                    <?php if ($auth->hasPermission('procurement')): ?>
+                    <?php if ($auth->hasPermission('procurement') && isModuleEnabled('procurement')): ?>
                     <li class="nav-item has-submenu <?php echo (strpos($_SERVER['REQUEST_URI'], '/procurement/') !== false) ? 'open' : ''; ?>">
                         <a href="javascript:void(0)" class="nav-link dropdown-toggle <?php echo activeMenu('procurement'); ?>">
                             <i data-feather="shopping-cart" class="nav-icon"></i>
@@ -156,7 +156,7 @@
                     <?php endif; ?>
                     
                     <!-- Laporan Dropdown Menu -->
-                    <?php if ($auth->hasPermission('reports')): ?>
+                    <?php if ($auth->hasPermission('reports') && isModuleEnabled('reports')): ?>
                     <li class="nav-item has-submenu <?php echo (strpos($_SERVER['REQUEST_URI'], '/reports/') !== false) ? 'open' : ''; ?>">
                         <a href="javascript:void(0)" class="nav-link dropdown-toggle <?php echo activeMenu('reports'); ?>">
                             <i data-feather="bar-chart-2" class="nav-icon"></i>
