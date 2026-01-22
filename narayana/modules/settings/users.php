@@ -119,6 +119,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
+            // Reload session if updating current user
+            if ($id == $currentUser['id']) {
+                $_SESSION['user'] = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$id]);
+            }
+            
             setFlashMessage('success', 'User berhasil diupdate!');
         }
         header('Location: users.php');
