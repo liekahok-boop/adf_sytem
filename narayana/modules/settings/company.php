@@ -37,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Handle logo upload
+        // Handle logo upload (per business)
         if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = '../../assets/images/';
+            $uploadDir = '../../uploads/logos/';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
@@ -48,24 +48,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
             
             if (in_array($fileExt, $allowedExts)) {
-                $fileName = 'logo-' . time() . '.' . $fileExt;
+                // Filename with business ID prefix
+                $fileName = ACTIVE_BUSINESS_ID . '_logo_' . time() . '.' . $fileExt;
                 $targetPath = $uploadDir . $fileName;
                 
                 if (move_uploaded_file($_FILES['company_logo']['tmp_name'], $targetPath)) {
-                    // Delete old logo
-                    $oldLogo = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'");
+                    // Delete old logo for this business
+                    $oldLogo = $db->fetchOne(
+                        "SELECT setting_value FROM settings WHERE setting_key = 'company_logo' AND (business_id = :business_id OR business_id IS NULL)",
+                        ['business_id' => ACTIVE_BUSINESS_ID]
+                    );
                     if ($oldLogo && !empty($oldLogo['setting_value'])) {
-                        $oldPath = '../../assets/images/' . $oldLogo['setting_value'];
-                        if (file_exists($oldPath)) {
+                        $oldPath = '../../uploads/logos/' . $oldLogo['setting_value'];
+                        if (file_exists($oldPath) && strpos($oldLogo['setting_value'], ACTIVE_BUSINESS_ID) !== false) {
                             unlink($oldPath);
                         }
                     }
                     
-                    // Update database
-                    $db->query(
-                        "UPDATE settings SET setting_value = :value WHERE setting_key = 'company_logo'",
-                        ['value' => $fileName]
+                    // Update or insert database (per business)
+                    $exists = $db->fetchOne(
+                        "SELECT id FROM settings WHERE setting_key = 'company_logo' AND business_id = :business_id",
+                        ['business_id' => ACTIVE_BUSINESS_ID]
                     );
+                    
+                    if ($exists) {
+                        $db->query(
+                            "UPDATE settings SET setting_value = :value WHERE setting_key = 'company_logo' AND business_id = :business_id",
+                            ['value' => $fileName, 'business_id' => ACTIVE_BUSINESS_ID]
+                        );
+                    } else {
+                        $db->insert('settings', [
+                            'business_id' => ACTIVE_BUSINESS_ID,
+                            'setting_key' => 'company_logo',
+                            'setting_value' => $fileName,
+                            'setting_type' => 'file',
+                            'description' => 'Company logo for ' . BUSINESS_NAME
+                        ]);
+                    }
                 }
             }
         }
@@ -81,11 +100,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get current settings
+// Get current settings for active business
 $currentSettings = [];
-$settings = $db->fetchAll("SELECT setting_key, setting_value FROM settings WHERE setting_key LIKE 'company_%'");
+$settings = $db->fetchAll(
+    "SELECT setting_key, setting_value FROM settings 
+     WHERE setting_key LIKE 'company_%' 
+     AND (business_id = :business_id OR business_id IS NULL)
+     ORDER BY business_id DESC",
+    ['business_id' => ACTIVE_BUSINESS_ID]
+);
 foreach ($settings as $setting) {
-    $currentSettings[$setting['setting_key']] = $setting['setting_value'];
+    // Use business-specific setting if exists, otherwise use global
+    if (!isset($currentSettings[$setting['setting_key']])) {
+        $currentSettings[$setting['setting_key']] = $setting['setting_value'];
+    }
 }
 
 include '../../includes/header.php';
@@ -114,10 +142,10 @@ include '../../includes/header.php';
             
             <!-- Logo Upload -->
             <div class="form-group">
-                <label class="form-label">Logo Perusahaan</label>
+                <label class="form-label">Logo Perusahaan (<?php echo BUSINESS_NAME; ?>)</label>
                 <?php if (!empty($currentSettings['company_logo'])): ?>
                     <div style="margin-bottom: 0.75rem;">
-                        <img src="../../assets/images/<?php echo $currentSettings['company_logo']; ?>" 
+                        <img src="../../uploads/logos/<?php echo $currentSettings['company_logo']; ?>" 
                              alt="Current Logo" 
                              style="max-width: 200px; max-height: 80px; border-radius: var(--radius-md); border: 1px solid var(--bg-tertiary); padding: 0.5rem; background: white;">
                     </div>

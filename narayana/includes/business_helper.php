@@ -144,28 +144,44 @@ function getBusinessLogo() {
     $config = getActiveBusinessConfig();
     $businessId = $config['business_id'];
     
-    // Try custom logo from config
-    if (!empty($config['logo'])) {
-        $logoPath = __DIR__ . '/../uploads/logos/' . $config['logo'];
-        if (file_exists($logoPath)) {
-            return BASE_URL . '/uploads/logos/' . $config['logo'];
-        }
-    }
-    
-    // Try business-specific logo (business-id.png)
-    $defaultLogo = __DIR__ . '/../uploads/logos/' . $businessId . '.png';
-    if (file_exists($defaultLogo)) {
-        return BASE_URL . '/uploads/logos/' . $businessId . '.png';
-    }
-    
-    // Fallback to company logo from settings
     try {
         $db = Database::getInstance();
-        $logoData = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'");
-        if ($logoData && $logoData['setting_value']) {
-            $settingsLogo = __DIR__ . '/../uploads/logos/' . $logoData['setting_value'];
+        
+        // Priority 1: Business-specific logo from settings table
+        $businessLogo = $db->fetchOne(
+            "SELECT setting_value FROM settings WHERE setting_key = 'company_logo' AND business_id = :business_id",
+            ['business_id' => $businessId]
+        );
+        
+        if ($businessLogo && $businessLogo['setting_value']) {
+            $logoPath = __DIR__ . '/../uploads/logos/' . $businessLogo['setting_value'];
+            if (file_exists($logoPath)) {
+                return BASE_URL . '/uploads/logos/' . $businessLogo['setting_value'];
+            }
+        }
+        
+        // Priority 2: Custom logo from config
+        if (!empty($config['logo'])) {
+            $logoPath = __DIR__ . '/../uploads/logos/' . $config['logo'];
+            if (file_exists($logoPath)) {
+                return BASE_URL . '/uploads/logos/' . $config['logo'];
+            }
+        }
+        
+        // Priority 3: Business-specific logo file (business-id_logo.png)
+        $defaultLogo = __DIR__ . '/../uploads/logos/' . $businessId . '_logo.png';
+        if (file_exists($defaultLogo)) {
+            return BASE_URL . '/uploads/logos/' . $businessId . '_logo.png';
+        }
+        
+        // Priority 4: Global company logo from settings
+        $globalLogo = $db->fetchOne(
+            "SELECT setting_value FROM settings WHERE setting_key = 'company_logo' AND business_id IS NULL"
+        );
+        if ($globalLogo && $globalLogo['setting_value']) {
+            $settingsLogo = __DIR__ . '/../uploads/logos/' . $globalLogo['setting_value'];
             if (file_exists($settingsLogo)) {
-                return BASE_URL . '/uploads/logos/' . $logoData['setting_value'];
+                return BASE_URL . '/uploads/logos/' . $globalLogo['setting_value'];
             }
         }
     } catch (Exception $e) {
