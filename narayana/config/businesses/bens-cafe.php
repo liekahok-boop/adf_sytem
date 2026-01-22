@@ -1,9 +1,12 @@
 <?php
 return [
     'business_id' => 'bens-cafe',
-    'business_name' => 'Bens Cafe',
+    'name' => 'Bens Cafe',
     'business_type' => 'cafe',
     'database' => 'narayana',
+    
+    // Logo (optional, jika kosong akan pakai icon)
+    'logo' => '', // Contoh: 'bens-cafe.png' di uploads/logos/
     
     'enabled_modules' => [
         'cashbook',

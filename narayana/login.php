@@ -40,14 +40,23 @@ if ($auth->isLoggedIn()) {
 if (isPost()) {
     $username = sanitize(getPost('username'));
     $password = getPost('password');
+    $selectedBusiness = sanitize(getPost('business', 'bens-cafe')); // Default to bens-cafe
     
     if ($auth->login($username, $password)) {
-        setFlash('success', 'Login berhasil! Selamat datang.');
+        // Set selected business in session
+        require_once 'includes/business_helper.php';
+        setActiveBusinessId($selectedBusiness);
+        
+        setFlash('success', 'Login berhasil! Selamat datang ke ' . getBusinessDisplayName($selectedBusiness));
         redirect(BASE_URL . '/index.php');
     } else {
         $error = 'Username atau password salah!';
     }
 }
+
+// Get available businesses for dropdown
+require_once 'includes/business_helper.php';
+$availableBusinesses = getAvailableBusinesses();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -191,6 +200,20 @@ if (isPost()) {
             <?php endif; ?>
             
             <form method="POST" action="">
+                <div class="form-group">
+                    <label class="form-label">Pilih Bisnis</label>
+                    <select name="business" class="form-control" required style="padding: 0.75rem;">
+                        <?php foreach ($availableBusinesses as $bizId => $bizConfig): ?>
+                            <option value="<?php echo htmlspecialchars($bizId); ?>">
+                                <?php echo htmlspecialchars($bizConfig['theme']['icon'] . ' ' . $bizConfig['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                        Pilih bisnis yang ingin Anda kelola
+                    </small>
+                </div>
+                
                 <div class="form-group">
                     <label class="form-label">Username</label>
                     <input type="text" name="username" class="form-control" placeholder="Masukkan username" required autofocus>

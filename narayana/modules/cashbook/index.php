@@ -1,6 +1,6 @@
 <?php
 /**
- * NARAYANA HOTEL MANAGEMENT SYSTEM
+ * MULTI-BUSINESS MANAGEMENT SYSTEM
  * Buku Kas Besar - List & Overview
  */
 
@@ -14,7 +14,10 @@ $auth = new Auth();
 $auth->requireLogin();
 $db = Database::getInstance();
 
-$pageTitle = 'Buku Kas Besar';
+// Load business configuration
+$businessConfig = require '../../config/businesses/' . ACTIVE_BUSINESS_ID . '.php';
+
+$pageTitle = BUSINESS_ICON . ' ' . BUSINESS_NAME . ' - Buku Kas Besar';
 $pageSubtitle = 'Pencatatan Transaksi Keuangan';
 
 // Filtering

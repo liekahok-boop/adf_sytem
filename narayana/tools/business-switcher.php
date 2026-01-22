@@ -4,6 +4,11 @@
  * Access: http://localhost:8080/narayana/tools/business-switcher.php
  */
 
+// Load config and business helper
+define('APP_ACCESS', true);
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/business_helper.php';
+
 // Security: Only allow in development mode
 if (!defined('ALLOW_BUSINESS_SWITCHER')) {
     define('ALLOW_BUSINESS_SWITCHER', true); // Set to false in production
@@ -16,16 +21,9 @@ if (!ALLOW_BUSINESS_SWITCHER) {
 // Handle switch request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['business_id'])) {
     $businessId = $_POST['business_id'];
-    $businessFile = __DIR__ . '/../config/businesses/' . $businessId . '.php';
     
-    if (file_exists($businessFile)) {
-        // Update active business
-        $activeFile = __DIR__ . '/../config/active-business.php';
-        $content = "<?php\nreturn '$businessId';\n";
-        file_put_contents($activeFile, $content);
-        
-        $config = require $businessFile;
-        $message = "✓ Switched to: " . $config['business_name'];
+    if (setActiveBusinessId($businessId)) {
+        $message = "✓ Switched to: " . getBusinessDisplayName($businessId);
         $success = true;
     } else {
         $message = "✗ Business not found!";
@@ -34,16 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['business_id'])) {
 }
 
 // Get current active business
-$activeBusiness = require __DIR__ . '/../config/active-business.php';
+$activeBusiness = getActiveBusinessId();
 
 // Get all businesses
-$businesses = [];
-$files = glob(__DIR__ . '/../config/businesses/*.php');
-foreach ($files as $file) {
-    $businessId = basename($file, '.php');
-    $config = require $file;
-    $businesses[$businessId] = $config;
-}
+$businesses = getAvailableBusinesses();
 ?>
 <!DOCTYPE html>
 <html lang="en">

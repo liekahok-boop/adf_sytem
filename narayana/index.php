@@ -1,6 +1,6 @@
 <?php
 /**
- * NARAYANA HOTEL MANAGEMENT SYSTEM
+ * MULTI-BUSINESS MANAGEMENT SYSTEM
  * Dashboard - Main Page
  */
 
@@ -25,6 +25,9 @@ $auth = new Auth();
 $auth->requireLogin();
 $db = Database::getInstance();
 
+// Load business configuration
+$businessConfig = require 'config/businesses/' . ACTIVE_BUSINESS_ID . '.php';
+
 // Check trial status
 $currentUser = $auth->getCurrentUser();
 $trialStatus = checkTrialStatus($currentUser);
@@ -33,8 +36,8 @@ $trialStatus = checkTrialStatus($currentUser);
 $waSetting = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'developer_whatsapp'");
 $developerWA = $waSetting['setting_value'] ?? null;
 
-$pageTitle = 'Dashboard';
-$pageSubtitle = 'Monitoring Real-time Accounting';
+$pageTitle = BUSINESS_ICON . ' ' . BUSINESS_NAME;
+$pageSubtitle = 'Dashboard & Monitoring Real-time';
 
 // Get date range (today, this month, this year)
 $today = date('Y-m-d');

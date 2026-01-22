@@ -30,42 +30,50 @@
         console.log('Current Theme:', document.body.getAttribute('data-theme'));
         console.log('Session Theme:', '<?php echo $_SESSION['user_theme'] ?? 'not-set'; ?>');
     </script>
+    
+    <!-- Business Theme CSS -->
+    <style>
+        <?php echo getBusinessThemeCSS(); ?>
+    </style>
 </head>
-<body data-theme="<?php echo $_SESSION['user_theme'] ?? 'dark'; ?>">
+<body data-theme="<?php echo $_SESSION['user_theme'] ?? 'dark'; ?>" data-business="<?php echo ACTIVE_BUSINESS_ID; ?>" data-business-type="<?php echo BUSINESS_TYPE; ?>">
     <div class="main-wrapper">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <?php
-                // Get hotel logo from settings
-                try {
-                    $db_temp = Database::getInstance();
-                    $hotelLogoData = $db_temp->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'");
-                    $hotelLogo = $hotelLogoData ? $hotelLogoData['setting_value'] : null;
-                    
-                    if ($hotelLogo && file_exists(BASE_PATH . '/uploads/logos/' . $hotelLogo)) {
-                        $logoPath = BASE_URL . '/uploads/logos/' . $hotelLogo;
-                    } else {
-                        $logoPath = null; // No logo, use icon instead
-                    }
-                } catch (Exception $e) {
-                    $logoPath = null;
-                }
+                // Get business logo
+                $logoPath = getBusinessLogo();
                 ?>
                 <div style="display: flex; align-items: center; gap: 0.875rem;">
                     <?php if ($logoPath): ?>
                         <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #0f172a; padding: 4px; display: flex; align-items: center; justify-content: center; border: 2px solid #1e293b;">
-                            <img src="<?php echo $logoPath; ?>" alt="Hotel Logo" style="width: 100%; height: 100%; border-radius: 6px; object-fit: cover;">
+                            <img src="<?php echo $logoPath; ?>" alt="<?php echo BUSINESS_NAME; ?>" style="width: 100%; height: 100%; border-radius: 6px; object-fit: cover;">
                         </div>
                     <?php else: ?>
-                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); display: flex; align-items: center; justify-content: center; border: 2px solid #1e293b;">
-                            <span style="font-size: 1.5rem; font-weight: 800; color: white;">N</span>
+                        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: linear-gradient(135deg, <?php echo BUSINESS_COLOR; ?>, <?php echo BUSINESS_COLOR; ?>dd); display: flex; align-items: center; justify-content: center; border: 2px solid #1e293b;">
+                            <span style="font-size: 1.5rem; font-weight: 800; color: white;"><?php echo BUSINESS_ICON; ?></span>
                         </div>
                     <?php endif; ?>
-                    <div>
-                        <h1 class="logo" style="margin: 0;">Narayana</h1>
-                        <p style="color: var(--text-muted); font-size: 0.75rem; margin: 0; margin-top: 0.25rem;">Hotel Management</p>
+                    <div style="flex: 1;">
+                        <h1 class="logo" style="margin: 0; font-size: 1rem;"><?php echo BUSINESS_NAME; ?></h1>
+                        <p style="color: var(--text-muted); font-size: 0.75rem; margin: 0; margin-top: 0.25rem;"><?php echo ucfirst(BUSINESS_TYPE); ?> System</p>
                     </div>
+                </div>
+                
+                <!-- Business Switcher Dropdown -->
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bg-tertiary);">
+                    <select onchange="switchBusiness(this.value)" style="width: 100%; padding: 0.5rem; background: var(--bg-tertiary); border: 1px solid var(--bg-quaternary); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.875rem; cursor: pointer;">
+                        <?php
+                        $allBusinesses = getAvailableBusinesses();
+                        foreach ($allBusinesses as $bizId => $bizConfig):
+                            $selected = ($bizId === ACTIVE_BUSINESS_ID) ? 'selected' : '';
+                        ?>
+                            <option value="<?php echo htmlspecialchars($bizId); ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($bizConfig['theme']['icon'] . ' ' . $bizConfig['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
             
@@ -292,3 +300,35 @@
             
             <!-- Page Content -->
             <div class="page-content">
+
+<script>
+// Business Switcher Function
+function switchBusiness(businessId) {
+    if (confirm('Switch to selected business? Current page will reload.')) {
+        // Send AJAX request to switch business
+        fetch('<?php echo BASE_URL; ?>/api/switch-business.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'business_id=' + encodeURIComponent(businessId)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload page to apply new business
+                window.location.reload();
+            } else {
+                alert('Failed to switch business: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to switch business. Please try again.');
+        });
+    } else {
+        // Reset select to current value
+        document.querySelector('select[onchange*="switchBusiness"]').value = '<?php echo ACTIVE_BUSINESS_ID; ?>';
+    }
+}
+</script>

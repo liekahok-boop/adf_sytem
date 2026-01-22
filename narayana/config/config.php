@@ -75,4 +75,27 @@ define('DATE_FORMAT', 'd/m/Y');
 define('DATETIME_FORMAT', 'd/m/Y H:i');
 define('TIME_FORMAT', 'H:i');
 
+// ============================================
+// MULTI-BUSINESS CONFIGURATION (SESSION-BASED)
+// ============================================
+// Start session for business selection
+if (session_status() === PHP_SESSION_NONE) {
+    session_name(SESSION_NAME);
+    session_start();
+}
+
+// Load business helper functions
+require_once __DIR__ . '/../includes/business_helper.php';
+
+// Get active business from session
+$activeBusinessId = getActiveBusinessId();
+$BUSINESS_CONFIG = getActiveBusinessConfig();
+
+// Make business config globally available
+define('ACTIVE_BUSINESS_ID', $activeBusinessId);
+define('BUSINESS_NAME', $BUSINESS_CONFIG['name']);
+define('BUSINESS_TYPE', $BUSINESS_CONFIG['business_type']);
+define('BUSINESS_ICON', $BUSINESS_CONFIG['theme']['icon']);
+define('BUSINESS_COLOR', $BUSINESS_CONFIG['theme']['color_primary']);
+
 ?>
