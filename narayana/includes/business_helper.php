@@ -18,6 +18,8 @@ function getAvailableBusinesses() {
             if ($file !== '.' && $file !== '..' && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
                 $businessId = pathinfo($file, PATHINFO_FILENAME);
                 $config = require $businessesPath . $file;
+                // Add ID to config
+                $config['id'] = $businessId;
                 $businesses[$businessId] = $config;
             }
         }
