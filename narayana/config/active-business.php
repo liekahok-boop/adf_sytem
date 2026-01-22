@@ -1,5 +1,5 @@
 <?php
-return 'bens-cafe';
+return 'narayana-hotel';
 
 // Available businesses:
 // - 'bens-cafe'

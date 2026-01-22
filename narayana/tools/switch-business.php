@@ -73,7 +73,7 @@ file_put_contents($activeFile, $content);
 
 // Display success message
 $icon = $config['theme']['icon'] ?? '📦';
-$name = $config['business_name'];
+$name = $config['name'] ?? $config['business_name'] ?? 'Unknown';
 $type = $config['business_type'];
 $db = $config['database'];
 $modules = count($config['enabled_modules']);
