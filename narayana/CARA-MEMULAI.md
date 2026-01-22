@@ -1,10 +1,12 @@
-# 🚀 CARA MEMULAI - 4 Bisnis Owner
+# 🚀 CARA MEMULAI - 6 Bisnis Owner
 
 ## Bisnis Anda:
 1. 🏨 **Narayana Hotel** - Hotel management
 2. 🍽️ **Eat & Meet** - Restaurant/Cafe  
 3. ⛵ **Pabrik Kapal** - Shipyard/Manufacturing
 4. 🪑 **Furniture Jepara** - Furniture business
+5. ☕ **Bens Cafe** - Coffee shop & beverages
+6. 🚤 **Karimunjawa Party Boat** - Tourism & boat trips
 
 ---
 
@@ -28,6 +30,12 @@ C:\xampp\php\php.exe tools/switch-business.php pabrik-kapal
 
 # Furniture
 C:\xampp\php\php.exe tools/switch-business.php furniture-jepara
+
+# Bens Cafe
+C:\xampp\php\php.exe tools/switch-business.php bens-cafe
+
+# Karimunjawa Party Boat
+C:\xampp\php\php.exe tools/switch-business.php karimunjawa-party-boat
 ```
 
 ---
@@ -97,6 +105,18 @@ C:\xampp\php\php.exe tools/switch-business.php narayana-hotel
 - **Warna:** Brown (#92400e)
 - **Modules:** Cashbook, Reports (Products, Orders - nanti tambah)
 - **Cashbook Kolom:** Order #, Product Name, Customer
+- **Database:** narayana (shared)
+
+### ☕ Bens Cafe
+- **Warna:** Brown (#92400e)
+- **Modules:** Cashbook, Reports (Menu, Orders - nanti tambah)
+- **Cashbook Kolom:** Order #, Table #, Barista Name
+- **Database:** narayana (shared)
+
+### 🚤 Karimunjawa Party Boat
+- **Warna:** Sky Blue (#0284c7)
+- **Modules:** Cashbook, Reports (Bookings, Trips - nanti tambah)
+- **Cashbook Kolom:** Booking Code, Boat Name, Trip Date, Guest Name
 - **Database:** narayana (shared)
 
 ---
