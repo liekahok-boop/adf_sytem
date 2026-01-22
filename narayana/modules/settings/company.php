@@ -130,7 +130,7 @@ include '../../includes/header.php';
     <div class="card">
         <div style="padding: 1rem; border-bottom: 1px solid var(--bg-tertiary);">
             <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-                <i data-feather="building" style="width: 22px; height: 22px; color: var(--primary-color);"></i>
+                <i data-feather="briefcase" style="width: 22px; height: 22px; color: var(--primary-color);"></i>
                 Pengaturan Perusahaan
             </h2>
             <p style="font-size: 0.813rem; color: var(--text-muted); margin: 0.5rem 0 0 0;">
@@ -144,11 +144,21 @@ include '../../includes/header.php';
             <div class="form-group">
                 <label class="form-label">Logo Perusahaan (<?php echo BUSINESS_NAME; ?>)</label>
                 <?php if (!empty($currentSettings['company_logo'])): ?>
+                    <?php 
+                    $logoPath = '../../uploads/logos/' . $currentSettings['company_logo'];
+                    if (file_exists($logoPath)): 
+                    ?>
                     <div style="margin-bottom: 0.75rem;">
-                        <img src="../../uploads/logos/<?php echo $currentSettings['company_logo']; ?>" 
+                        <img src="<?php echo BASE_URL; ?>/uploads/logos/<?php echo htmlspecialchars($currentSettings['company_logo']); ?>" 
                              alt="Current Logo" 
-                             style="max-width: 200px; max-height: 80px; border-radius: var(--radius-md); border: 1px solid var(--bg-tertiary); padding: 0.5rem; background: white;">
+                             style="max-width: 200px; max-height: 80px; border-radius: var(--radius-md); border: 1px solid var(--bg-tertiary); padding: 0.5rem; background: white;"
+                             onerror="this.style.display='none'">
                     </div>
+                    <?php else: ?>
+                    <div style="margin-bottom: 0.75rem; padding: 1rem; background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: var(--radius-md); color: var(--warning-text); font-size: 0.875rem;">
+                        ⚠️ Logo tidak ditemukan. Silakan upload logo baru.
+                    </div>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <input type="file" name="company_logo" class="form-control" accept="image/*">
                 <small style="font-size: 0.75rem; color: var(--text-muted);">Format: JPG, PNG, GIF. Max 2MB. Rekomendasi: 400x150px</small>
