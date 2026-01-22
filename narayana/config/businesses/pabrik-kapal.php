@@ -1,7 +1,7 @@
 <?php
 return [
     'business_id' => 'pabrik-kapal',
-    'business_name' => 'Pabrik Kapal Indonesia',
+    'name' => 'Pabrik Kapal Indonesia',
     'business_type' => 'manufacturing',
     'database' => 'narayana',  // Use same database, different config
     

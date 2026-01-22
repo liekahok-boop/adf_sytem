@@ -1,7 +1,7 @@
 <?php
 return [
     'business_id' => 'furniture-jepara',
-    'business_name' => 'Furniture Jepara',
+    'name' => 'Furniture Jepara',
     'business_type' => 'furniture',
     'database' => 'narayana',  // Use same database, different config
     

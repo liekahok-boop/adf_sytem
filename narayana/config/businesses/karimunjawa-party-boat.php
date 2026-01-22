@@ -1,7 +1,7 @@
 <?php
 return [
     'business_id' => 'karimunjawa-party-boat',
-    'business_name' => 'Karimunjawa Party Boat',
+    'name' => 'Karimunjawa Party Boat',
     'business_type' => 'tourism',
     'database' => 'narayana',
     

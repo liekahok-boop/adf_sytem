@@ -1,7 +1,7 @@
 <?php
 return [
     'business_id' => 'eat-meet',
-    'business_name' => 'Eat & Meet Restaurant',
+    'name' => 'Eat & Meet Restaurant',
     'business_type' => 'restaurant',
     'database' => 'narayana',  // Use same database, different config
     
