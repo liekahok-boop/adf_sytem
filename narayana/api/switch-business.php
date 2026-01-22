@@ -8,6 +8,7 @@ define('APP_ACCESS', true);
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/business_helper.php';
+require_once __DIR__ . '/../includes/business_access.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -22,6 +23,8 @@ if (!$auth->isLoggedIn()) {
     exit;
 }
 
+$currentUser = $auth->getCurrentUser();
+
 // Check if business_id is provided
 if (!isset($_POST['business_id']) || empty($_POST['business_id'])) {
     echo json_encode([
@@ -32,6 +35,18 @@ if (!isset($_POST['business_id']) || empty($_POST['business_id'])) {
 }
 
 $businessId = sanitize($_POST['business_id']);
+
+// Check if user has access to this business
+$businessAccess = json_decode($currentUser['business_access'] ?? '[]', true);
+$isOwnerOrAdmin = ($currentUser['role'] === 'owner' || $currentUser['role'] === 'admin');
+
+if (!$isOwnerOrAdmin && !in_array($businessId, $businessAccess)) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Access denied. You do not have permission to access this business.'
+    ]);
+    exit;
+}
 
 // Attempt to switch business
 if (setActiveBusinessId($businessId)) {

@@ -10,13 +10,27 @@ require_once 'config.php';
 class Database {
     private static $instance = null;
     private $connection;
+    private static $currentDatabase = null;
     
     /**
      * Private constructor - Singleton Pattern
      */
-    private function __construct() {
+    private function __construct($dbName = null) {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+            // Get database name from business config if not provided
+            if ($dbName === null) {
+                if (defined('ACTIVE_BUSINESS_ID')) {
+                    require_once __DIR__ . '/../includes/business_helper.php';
+                    $businessConfig = getActiveBusinessConfig();
+                    $dbName = $businessConfig['database'];
+                } else {
+                    $dbName = DB_NAME; // Fallback to default
+                }
+            }
+            
+            self::$currentDatabase = $dbName;
+            
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . $dbName . ";charset=" . DB_CHARSET;
             $options = [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -26,17 +40,34 @@ class Database {
             
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            die("Database Connection Error: " . $e->getMessage());
+            die("Database Connection Error to '{$dbName}': " . $e->getMessage());
         }
     }
     
     /**
      * Get Database Instance
+     * @param bool $forceNew Force new connection (for switching databases)
      */
-    public static function getInstance() {
-        if (self::$instance === null) {
+    public static function getInstance($forceNew = false) {
+        if (self::$instance === null || $forceNew) {
             self::$instance = new self();
         }
+        return self::$instance;
+    }
+    
+    /**
+     * Get current database name
+     */
+    public static function getCurrentDatabase() {
+        return self::$currentDatabase;
+    }
+    
+    /**
+     * Switch to different database
+     * @param string $dbName Database name to switch to
+     */
+    public static function switchDatabase($dbName) {
+        self::$instance = new self($dbName);
         return self::$instance;
     }
     

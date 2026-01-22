@@ -65,8 +65,9 @@
                 <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bg-tertiary);">
                     <select onchange="switchBusiness(this.value)" style="width: 100%; padding: 0.5rem; background: var(--bg-tertiary); border: 1px solid var(--bg-quaternary); border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.875rem; cursor: pointer;">
                         <?php
-                        $allBusinesses = getAvailableBusinesses();
-                        foreach ($allBusinesses as $bizId => $bizConfig):
+                        require_once __DIR__ . '/business_access.php';
+                        $userBusinesses = getUserAvailableBusinesses();
+                        foreach ($userBusinesses as $bizId => $bizConfig):
                             $selected = ($bizId === ACTIVE_BUSINESS_ID) ? 'selected' : '';
                         ?>
                             <option value="<?php echo htmlspecialchars($bizId); ?>" <?php echo $selected; ?>>

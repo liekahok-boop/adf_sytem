@@ -3,7 +3,7 @@ return [
     'business_id' => 'narayana-hotel',
     'name' => 'Narayana Hotel Jepara',
     'business_type' => 'hotel',
-    'database' => 'narayana',
+    'database' => 'narayana_hotel',
     
     'enabled_modules' => [
         'cashbook',

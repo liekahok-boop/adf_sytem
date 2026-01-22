@@ -3,7 +3,7 @@ return [
     'business_id' => 'furniture-jepara',
     'name' => 'Furniture Jepara',
     'business_type' => 'furniture',
-    'database' => 'narayana',  // Use same database, different config
+    'database' => 'narayana_furniture',  // Use same database, different config
     
     'enabled_modules' => [
         'cashbook',

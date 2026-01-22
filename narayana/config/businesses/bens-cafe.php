@@ -3,7 +3,7 @@ return [
     'business_id' => 'bens-cafe',
     'name' => 'Bens Cafe',
     'business_type' => 'cafe',
-    'database' => 'narayana',
+    'database' => 'narayana_benscafe',
     
     // Logo (optional, jika kosong akan pakai icon)
     'logo' => '', // Contoh: 'bens-cafe.png' di uploads/logos/

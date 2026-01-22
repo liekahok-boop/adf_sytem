@@ -3,7 +3,7 @@ return [
     'business_id' => 'karimunjawa-party-boat',
     'name' => 'Karimunjawa Party Boat',
     'business_type' => 'tourism',
-    'database' => 'narayana',
+    'database' => 'narayana_karimunjawa',
     
     'enabled_modules' => [
         'cashbook',
