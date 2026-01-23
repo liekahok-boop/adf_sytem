@@ -29,7 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve'])) {
     $result = approvePurchaseOrderAndPay($po_id, $currentUser['id'], $options);
     
     if ($result['success']) {
-        $_SESSION['success'] = '✅ Purchase Order berhasil di-approve dan dibayar!<br>💰 <strong>Kas Besar berkurang sebesar Rp ' . number_format($result['amount'], 0, ',', '.') . '</strong><br>📝 Transaksi tercatat di Buku Kas Besar.';
+        $_SESSION['success'] = '✅ Purchase Order berhasil di-approve dan dibayar!<br>
+            💰 <strong>Kas Besar berkurang sebesar Rp ' . number_format($result['amount'], 0, ',', '.') . '</strong><br>
+            📝 Transaksi tercatat di Buku Kas Besar.<br>
+            <a href="../../modules/cashbook/index.php" style="color: #059669; text-decoration: underline; font-weight: 600;">👉 Lihat di Buku Kas</a>';
         header('Location: purchases.php');
         exit;
     } else {
