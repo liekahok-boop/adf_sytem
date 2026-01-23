@@ -117,6 +117,43 @@ include '../../includes/header.php';
     color: var(--primary-color);
 }
 
+/* Enhanced checked state for payment method */
+.payment-method-card input[type="radio"]:checked ~ .payment-content {
+    position: relative;
+}
+
+.payment-method-card input[type="radio"]:checked ~ .payment-content::after {
+    content: '✓';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.payment-method-card input[type="radio"]:checked {
+    & + .payment-content {
+        background: rgba(99, 102, 241, 0.1);
+        border-radius: 0.5rem;
+        padding: 0.25rem;
+    }
+}
+
+.payment-method-card:has(input[type="radio"]:checked) {
+    background: rgba(99, 102, 241, 0.05);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
 .compact-form-group {
     margin-bottom: 0.875rem;
 }
@@ -231,7 +268,7 @@ include '../../includes/header.php';
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.375rem;">
                         <label class="payment-method-card" style="padding: 0.5rem;">
                             <input type="radio" name="payment_method" value="cash" required checked>
-                            <div class="payment-content" style="text-align: center;">
+                            <div class="payment-content" style="text-align: center; position: relative;">
                                 <i data-feather="dollar-sign" style="width: 16px; height: 16px; margin-bottom: 0.125rem; color: #10b981;"></i>
                                 <div style="font-weight: 600; font-size: 0.688rem; color: var(--text-primary);">Cash</div>
                             </div>
@@ -239,7 +276,7 @@ include '../../includes/header.php';
                         
                         <label class="payment-method-card" style="padding: 0.5rem;">
                             <input type="radio" name="payment_method" value="debit" required>
-                            <div class="payment-content" style="text-align: center;">
+                            <div class="payment-content" style="text-align: center; position: relative;">
                                 <i data-feather="credit-card" style="width: 16px; height: 16px; margin-bottom: 0.125rem; color: #3b82f6;"></i>
                                 <div style="font-weight: 600; font-size: 0.688rem; color: var(--text-primary);">Debit</div>
                             </div>
@@ -247,7 +284,7 @@ include '../../includes/header.php';
                         
                         <label class="payment-method-card" style="padding: 0.5rem;">
                             <input type="radio" name="payment_method" value="transfer" required>
-                            <div class="payment-content" style="text-align: center;">
+                            <div class="payment-content" style="text-align: center; position: relative;">
                                 <i data-feather="send" style="width: 16px; height: 16px; margin-bottom: 0.125rem; color: #8b5cf6;"></i>
                                 <div style="font-weight: 600; font-size: 0.688rem; color: var(--text-primary);">Transfer</div>
                             </div>
@@ -255,7 +292,7 @@ include '../../includes/header.php';
                         
                         <label class="payment-method-card" style="padding: 0.5rem;">
                             <input type="radio" name="payment_method" value="qr" required>
-                            <div class="payment-content" style="text-align: center;">
+                            <div class="payment-content" style="text-align: center; position: relative;">
                                 <i data-feather="smartphone" style="width: 16px; height: 16px; margin-bottom: 0.125rem; color: #f59e0b;"></i>
                                 <div style="font-weight: 600; font-size: 0.688rem; color: var(--text-primary);">QR Code</div>
                             </div>
@@ -263,7 +300,7 @@ include '../../includes/header.php';
                         
                         <label class="payment-method-card" style="padding: 0.5rem;">
                             <input type="radio" name="payment_method" value="other" required>
-                            <div class="payment-content" style="text-align: center;">
+                            <div class="payment-content" style="text-align: center; position: relative;">
                                 <i data-feather="more-horizontal" style="width: 16px; height: 16px; margin-bottom: 0.125rem; color: #6b7280;"></i>
                                 <div style="font-weight: 600; font-size: 0.688rem; color: var(--text-primary);">Lainnya</div>
                             </div>

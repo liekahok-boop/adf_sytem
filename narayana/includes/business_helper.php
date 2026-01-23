@@ -158,7 +158,8 @@ function getBusinessLogo() {
         if ($businessLogo && $businessLogo['setting_value']) {
             $logoPath = __DIR__ . '/../uploads/logos/' . $businessLogo['setting_value'];
             if (file_exists($logoPath)) {
-                return BASE_URL . '/uploads/logos/' . $businessLogo['setting_value'];
+                $timestamp = filemtime($logoPath);
+                return BASE_URL . '/uploads/logos/' . $businessLogo['setting_value'] . '?v=' . $timestamp;
             }
         }
         
@@ -166,14 +167,16 @@ function getBusinessLogo() {
         if (!empty($config['logo'])) {
             $logoPath = __DIR__ . '/../uploads/logos/' . $config['logo'];
             if (file_exists($logoPath)) {
-                return BASE_URL . '/uploads/logos/' . $config['logo'];
+                $timestamp = filemtime($logoPath);
+                return BASE_URL . '/uploads/logos/' . $config['logo'] . '?v=' . $timestamp;
             }
         }
         
         // Priority 3: Business-specific logo file (business-id_logo.png)
         $defaultLogo = __DIR__ . '/../uploads/logos/' . $businessId . '_logo.png';
         if (file_exists($defaultLogo)) {
-            return BASE_URL . '/uploads/logos/' . $businessId . '_logo.png';
+            $timestamp = filemtime($defaultLogo);
+            return BASE_URL . '/uploads/logos/' . $businessId . '_logo.png?v=' . $timestamp;
         }
         
         // Priority 4: Global company logo from settings
@@ -183,7 +186,8 @@ function getBusinessLogo() {
         if ($globalLogo && $globalLogo['setting_value']) {
             $settingsLogo = __DIR__ . '/../uploads/logos/' . $globalLogo['setting_value'];
             if (file_exists($settingsLogo)) {
-                return BASE_URL . '/uploads/logos/' . $globalLogo['setting_value'];
+                $timestamp = filemtime($settingsLogo);
+                return BASE_URL . '/uploads/logos/' . $globalLogo['setting_value'] . '?v=' . $timestamp;
             }
         }
     } catch (Exception $e) {
