@@ -25,45 +25,78 @@ class Auth {
     }
     
     /**
-     * Login User
+     * Login User (Support both bcrypt and MD5) - Using PDO directly
      */
     public function login($username, $password) {
-        $sql = "SELECT * FROM users WHERE username = :username AND is_active = 1 LIMIT 1";
-        $user = $this->db->fetchOne($sql, ['username' => $username]);
-        
-        if ($user && password_verify($password, $user['password'])) {
-            $this->startSession();
-            
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['full_name'] = $user['full_name'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['logged_in'] = true;
-            $_SESSION['login_time'] = time();
-            
-            // Load user preferences (theme & language)
-            $preferences = $this->db->fetchOne(
-                "SELECT theme, language FROM user_preferences WHERE user_id = ?",
-                [$user['id']]
+        try {
+            // Use PDO directly for reliability - USE CONFIG CONSTANTS!
+            $pdo = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER,
+                DB_PASS,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
             
-            if ($preferences) {
-                $_SESSION['user_theme'] = $preferences['theme'];
-                $_SESSION['user_language'] = $preferences['language'];
-            } else {
-                // Default preferences
-                $_SESSION['user_theme'] = 'dark';
-                $_SESSION['user_language'] = 'id';
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? AND is_active = 1 LIMIT 1");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Check both bcrypt and MD5
+            $passwordMatch = false;
+            if ($user) {
+                // Try bcrypt first
+                if (password_verify($password, $user['password'])) {
+                    $passwordMatch = true;
+                }
+                // Try MD5 if bcrypt fails
+                else if ($user['password'] === md5($password)) {
+                    $passwordMatch = true;
+                }
             }
             
-            // Update last login
-            $updateSql = "UPDATE users SET updated_at = NOW() WHERE id = :id";
-            $this->db->query($updateSql, ['id' => $user['id']]);
+            if ($user && $passwordMatch) {
+                $this->startSession();
+                
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['full_name'] = $user['full_name'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['business_access'] = $user['business_access'];
+                $_SESSION['logged_in'] = true;
+                $_SESSION['login_time'] = time();
+                
+                // Load user preferences (theme & language)
+                try {
+                    $stmt = $pdo->prepare("SELECT theme, language FROM user_preferences WHERE user_id = ?");
+                    $stmt->execute([$user['id']]);
+                    $preferences = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($preferences) {
+                        $_SESSION['user_theme'] = $preferences['theme'];
+                        $_SESSION['user_language'] = $preferences['language'];
+                    } else {
+                        // Default preferences
+                        $_SESSION['user_theme'] = 'dark';
+                        $_SESSION['user_language'] = 'id';
+                    }
+                } catch (PDOException $e) {
+                    // Table doesn't exist or other error - use defaults
+                    $_SESSION['user_theme'] = 'dark';
+                    $_SESSION['user_language'] = 'id';
+                }
+                
+                // Update last login
+                $stmt = $pdo->prepare("UPDATE users SET updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$user['id']]);
+                
+                return true;
+            }
             
-            return true;
+            return false;
+        } catch (PDOException $e) {
+            error_log("Auth login error: " . $e->getMessage());
+            return false;
         }
-        
-        return false;
     }
     
     /**

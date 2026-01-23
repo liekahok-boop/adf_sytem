@@ -36,22 +36,10 @@ if (!in_array($period, $validPeriods)) {
 }
 
 try {
-    // Use single database (narayana_db)
-    $db = Database::getInstance();
+    // Get accessible businesses
+    $accessibleBusinesses = getUserAvailableBusinesses($currentUser['id']);
     
-    // Get user's business_access
-    $businessAccess = $currentUser['business_access'] ?? null;
-    
-    if (!$businessAccess || $businessAccess === 'null') {
-        $user = $db->fetchOne(
-            "SELECT business_access FROM users WHERE id = ?",
-            [$currentUser['id']]
-        );
-        $businessAccess = $user['business_access'] ?? '[]';
-    }
-    
-    $accessibleBusinessIds = json_decode($businessAccess, true);
-    if (!is_array($accessibleBusinessIds) || empty($accessibleBusinessIds)) {
+    if (empty($accessibleBusinesses)) {
         echo json_encode([
             'success' => true,
             'period' => $period,
@@ -61,40 +49,44 @@ try {
     }
     
     // Filter to specific business if requested
-    if ($specificBusinessId && in_array($specificBusinessId, $accessibleBusinessIds)) {
-        $businessFilter = " AND branch_id = ?";
-        $businessParams = [$specificBusinessId];
-    } else {
-        $placeholders = implode(',', array_fill(0, count($accessibleBusinessIds), '?'));
-        $businessFilter = " AND branch_id IN ($placeholders)";
-        $businessParams = $accessibleBusinessIds;
+    if ($specificBusinessId) {
+        $accessibleBusinesses = array_filter($accessibleBusinesses, function($b) use ($specificBusinessId) {
+            return $b['id'] == $specificBusinessId;
+        });
     }
+    
+    // Initialize data arrays based on period
+    $aggregatedData = [];
     
     if ($period === '7days') {
         // Prepare 7 days
-        $aggregatedData = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = date('Y-m-d', strtotime("-$i days"));
             $aggregatedData[$date] = ['income' => 0, 'expense' => 0];
         }
         
-        // Query from single database
-        $results = $db->fetchAll(
-            "SELECT 
-                DATE(transaction_date) as date,
-                SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as expense
-             FROM cash_book
-             WHERE transaction_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)" . $businessFilter . "
-             GROUP BY DATE(transaction_date)",
-            $businessParams
-        );
-        
-        // Populate data
-        foreach ($results as $row) {
-            if (isset($aggregatedData[$row['date']])) {
-                $aggregatedData[$row['date']]['income'] = floatval($row['income']);
-                $aggregatedData[$row['date']]['expense'] = floatval($row['expense']);
+        // Query each business
+        foreach ($accessibleBusinesses as $business) {
+            $dbName = $business['database'];
+            $businessDb = new Database($dbName);
+            
+            $results = $businessDb->fetchAll(
+                "SELECT 
+                    DATE(transaction_date) as date,
+                    SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as income,
+                    SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as expense
+                 FROM cash_book
+                 WHERE transaction_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                 GROUP BY DATE(transaction_date)",
+                []
+            );
+            
+            // Aggregate results
+            foreach ($results as $row) {
+                if (isset($aggregatedData[$row['date']])) {
+                    $aggregatedData[$row['date']]['income'] += floatval($row['income']);
+                    $aggregatedData[$row['date']]['expense'] += floatval($row['expense']);
+                }
             }
         }
         
@@ -119,25 +111,29 @@ try {
         
         $firstDay = date('Y-m-01');
         $lastDay = date('Y-m-t');
-        $params30 = array_merge([$firstDay, $lastDay], $businessParams);
         
-        // Query from single database
-        $results = $db->fetchAll(
-            "SELECT 
-                DATE(transaction_date) as date,
-                SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as expense
-             FROM cash_book
-             WHERE transaction_date >= ? AND transaction_date <= ?" . $businessFilter . "
-             GROUP BY DATE(transaction_date)",
-            $params30
-        );
-        
-        // Populate data
-        foreach ($results as $row) {
-            if (isset($aggregatedData[$row['date']])) {
-                $aggregatedData[$row['date']]['income'] = floatval($row['income']);
-                $aggregatedData[$row['date']]['expense'] = floatval($row['expense']);
+        // Query each business
+        foreach ($accessibleBusinesses as $business) {
+            $dbName = $business['database'];
+            $businessDb = new Database($dbName);
+            
+            $results = $businessDb->fetchAll(
+                "SELECT 
+                    DATE(transaction_date) as date,
+                    SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as income,
+                    SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as expense
+                 FROM cash_book
+                 WHERE transaction_date >= ? AND transaction_date <= ?
+                 GROUP BY DATE(transaction_date)",
+                [$firstDay, $lastDay]
+            );
+            
+            // Aggregate results
+            foreach ($results as $row) {
+                if (isset($aggregatedData[$row['date']])) {
+                    $aggregatedData[$row['date']]['income'] += floatval($row['income']);
+                    $aggregatedData[$row['date']]['expense'] += floatval($row['expense']);
+                }
             }
         }
         
@@ -162,25 +158,29 @@ try {
         
         $firstDay = $currentYear . '-01-01';
         $lastDay = $currentYear . '-12-31';
-        $params12 = array_merge([$firstDay, $lastDay], $businessParams);
         
-        // Query from single database
-        $results = $db->fetchAll(
-            "SELECT 
-                DATE_FORMAT(transaction_date, '%Y-%m') as month,
-                SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as expense
-             FROM cash_book
-             WHERE transaction_date >= ? AND transaction_date <= ?" . $businessFilter . "
-             GROUP BY DATE_FORMAT(transaction_date, '%Y-%m')",
-            $params12
-        );
-        
-        // Populate data
-        foreach ($results as $row) {
-            if (isset($aggregatedData[$row['month']])) {
-                $aggregatedData[$row['month']]['income'] = floatval($row['income']);
-                $aggregatedData[$row['month']]['expense'] = floatval($row['expense']);
+        // Query each business
+        foreach ($accessibleBusinesses as $business) {
+            $dbName = $business['database'];
+            $businessDb = new Database($dbName);
+            
+            $results = $businessDb->fetchAll(
+                "SELECT 
+                    DATE_FORMAT(transaction_date, '%Y-%m') as month,
+                    SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END) as income,
+                    SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END) as expense
+                 FROM cash_book
+                 WHERE transaction_date >= ? AND transaction_date <= ?
+                 GROUP BY DATE_FORMAT(transaction_date, '%Y-%m')",
+                [$firstDay, $lastDay]
+            );
+            
+            // Aggregate results
+            foreach ($results as $row) {
+                if (isset($aggregatedData[$row['month']])) {
+                    $aggregatedData[$row['month']]['income'] += floatval($row['income']);
+                    $aggregatedData[$row['month']]['expense'] += floatval($row['expense']);
+                }
             }
         }
         
@@ -204,7 +204,7 @@ try {
             'income' => $incomeData,
             'expense' => $expenseData
         ],
-        'businesses_count' => count($accessibleBusinessIds)
+        'businesses_count' => count($accessibleBusinesses)
     ]);
     
 } catch (Exception $e) {

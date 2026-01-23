@@ -1,10 +1,11 @@
 <?php
 /**
  * API: Owner Branches
- * Get list of branches accessible by owner
+ * Get list of branches/businesses from database
+ * Filter by user's business_access
  */
-error_reporting(0);
-ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once '../config/config.php';
 require_once '../config/database.php';
@@ -19,7 +20,6 @@ if (!$auth->isLoggedIn()) {
 }
 
 $currentUser = $auth->getCurrentUser();
-$db = Database::getInstance();
 
 // Check if user is owner or admin
 if ($currentUser['role'] !== 'owner' && $currentUser['role'] !== 'admin') {
@@ -28,26 +28,61 @@ if ($currentUser['role'] !== 'owner' && $currentUser['role'] !== 'admin') {
 }
 
 try {
-    // If admin, show all branches
-    if ($currentUser['role'] === 'admin') {
-        $branches = $db->fetchAll(
-            "SELECT * FROM branches WHERE is_active = 1 ORDER BY branch_name"
-        );
-    } else {
-        // If owner, show only accessible branches
-        $branches = $db->fetchAll(
-            "SELECT b.* FROM branches b
-             INNER JOIN owner_branch_access oba ON b.id = oba.branch_id
-             WHERE oba.user_id = ? AND b.is_active = 1
-             ORDER BY b.branch_name",
+    // FORCE connection to narayana_db (businesses table is there, not in business-specific DBs)
+    $db = Database::switchDatabase('narayana_db');
+    
+    // DEBUG: Check which database we're connected to
+    $currentDb = $db->fetchOne("SELECT DATABASE() as db_name");
+    error_log("Owner Branches - Connected to: " . $currentDb['db_name']);
+    
+    // Get user's business_access
+    $businessAccess = $currentUser['business_access'] ?? null;
+    
+    if (!$businessAccess || $businessAccess === 'null') {
+        // Jika tidak ada business_access, ambil dari database
+        $user = $db->fetchOne(
+            "SELECT business_access FROM users WHERE id = ?",
             [$currentUser['id']]
         );
+        $businessAccess = $user['business_access'] ?? '[]';
+    }
+    
+    // Decode JSON
+    $accessibleBusinessIds = json_decode($businessAccess, true);
+    
+    if (!is_array($accessibleBusinessIds)) {
+        $accessibleBusinessIds = [];
+    }
+    
+    // Get all businesses from database
+    $allBusinesses = $db->fetchAll("SELECT id, business_name, address, phone FROM businesses ORDER BY id");
+    error_log("Owner Branches - Businesses found: " . count($allBusinesses));
+    error_log("Owner Branches - Query result: " . json_encode($allBusinesses));
+    
+    $branches = [];
+    
+    foreach ($allBusinesses as $business) {
+        // Filter: hanya tampilkan bisnis yang user punya akses
+        if (in_array($business['id'], $accessibleBusinessIds)) {
+            $branches[] = [
+                'id' => $business['id'],
+                'branch_name' => $business['business_name'],
+                'city' => $business['address'] ?? '-',
+                'phone' => $business['phone'] ?? '-'
+            ];
+        }
     }
     
     echo json_encode([
         'success' => true,
         'branches' => $branches,
-        'count' => count($branches)
+        'count' => count($branches),
+        'user_info' => [
+            'username' => $currentUser['username'],
+            'role' => $currentUser['role'],
+            'total_businesses' => count($allBusinesses),
+            'accessible_businesses' => count($branches)
+        ]
     ]);
     
 } catch (Exception $e) {

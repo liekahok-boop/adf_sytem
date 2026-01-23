@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Chart Simple</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { padding: 20px; background: #1a1a2e; color: white; font-family: monospace; }
+        #chartContainer { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; }
+        canvas { max-height: 300px; }
+        pre { background: #16213e; padding: 15px; border-radius: 5px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h2>🧪 Test Chart.js Simple</h2>
+    <button onclick="testChart()">Create Chart</button>
+    <button onclick="loadRealData()">Load Real Data</button>
+    
+    <div id="chartContainer">
+        <canvas id="myChart"></canvas>
+    </div>
+    
+    <h3>Debug Log:</h3>
+    <pre id="log"></pre>
+    
+    <script>
+        let chart = null;
+        
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        function testChart() {
+            log('Testing Chart.js...');
+            log('Chart available: ' + (typeof Chart !== 'undefined'));
+            
+            const ctx = document.getElementById('myChart');
+            if (!ctx) {
+                log('ERROR: Canvas not found!');
+                return;
+            }
+            
+            log('Creating chart...');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Sample Data',
+                        data: [12, 19, 3, 5, 2, 3, 7],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+            log('Chart created successfully!');
+        }
+        
+        async function loadRealData() {
+            log('Loading real data from API...');
+            
+            try {
+                const response = await fetch('../../api/owner-chart-data.php?period=7days');
+                const result = await response.json();
+                
+                log('API Response: ' + JSON.stringify(result, null, 2));
+                
+                if (result.success && result.data) {
+                    log('Updating chart with real data...');
+                    
+                    if (!chart) {
+                        log('Creating chart first...');
+                        testChart();
+                    }
+                    
+                    chart.data.labels = result.data.labels;
+                    chart.data.datasets[0].data = result.data.income;
+                    chart.data.datasets[0].label = 'Income';
+                    
+                    // Add expense dataset
+                    if (chart.data.datasets.length < 2) {
+                        chart.data.datasets.push({
+                            label: 'Expense',
+                            data: result.data.expense,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        });
+                    } else {
+                        chart.data.datasets[1].data = result.data.expense;
+                    }
+                    
+                    chart.update();
+                    log('Chart updated successfully!');
+                } else {
+                    log('ERROR: API failed - ' + (result.message || 'Unknown error'));
+                }
+            } catch (error) {
+                log('ERROR: ' + error.message);
+            }
+        }
+        
+        // Auto test
+        window.onload = () => {
+            log('=== Page Loaded ===');
+            setTimeout(() => loadRealData(), 500);
+        };
+    </script>
+</body>
+</html>

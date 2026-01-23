@@ -3,7 +3,7 @@ return [
     'business_id' => 'pabrik-kapal',
     'name' => 'Pabrik Kapal Indonesia',
     'business_type' => 'manufacturing',
-    'database' => 'narayana_pabrikkapal',  // Use same database, different config
+    'database' => 'narayana_db',  // Use same database, different config
     
     'enabled_modules' => [
         'cashbook',

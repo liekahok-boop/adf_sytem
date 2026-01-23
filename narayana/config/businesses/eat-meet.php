@@ -3,7 +3,7 @@ return [
     'business_id' => 'eat-meet',
     'name' => 'Eat & Meet Restaurant',
     'business_type' => 'restaurant',
-    'database' => 'narayana_eatmeet',  // Use same database, different config
+    'database' => 'narayana_db',  // Use same database, different config
     
     'enabled_modules' => [
         'cashbook',

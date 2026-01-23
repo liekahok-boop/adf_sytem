@@ -43,10 +43,12 @@ if (isPost()) {
     $selectedBusiness = sanitize(getPost('business', 'bens-cafe')); // Default to bens-cafe
     
     if ($auth->login($username, $password)) {
-        // Set selected business in session
+        $currentUser = $auth->getCurrentUser();
+        
+        // ALL roles can login here (staff, manager, accountant, admin, owner)
+        // Admin and owner get full access to all features
         require_once 'includes/business_helper.php';
         setActiveBusinessId($selectedBusiness);
-        
         setFlash('success', 'Login berhasil! Selamat datang ke ' . getBusinessDisplayName($selectedBusiness));
         redirect(BASE_URL . '/index.php');
     } else {

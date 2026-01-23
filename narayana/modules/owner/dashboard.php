@@ -37,18 +37,35 @@ $logoFile = 'logo-alt.png';
         body {
             margin: 0;
             padding: 0;
-            background: var(--bg-primary);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1d3d 50%, #0f1729 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
         }
         
         .mobile-header {
             position: sticky;
             top: 0;
             z-index: 1000;
-            background: linear-gradient(135deg, #1e1b4b, #4338ca);
-            padding: 1rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(139, 92, 246, 0.9) 100%);
+            padding: 1rem 1.25rem;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .header-content {
@@ -59,15 +76,18 @@ $logoFile = 'logo-alt.png';
         }
         
         .header-title {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
             font-weight: 700;
             margin: 0;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
         }
         
         .header-subtitle {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             opacity: 0.9;
             margin-top: 0.25rem;
+            font-weight: 500;
         }
         
         .refresh-btn {
@@ -105,63 +125,116 @@ $logoFile = 'logo-alt.png';
         }
         
         .content-wrapper {
-            padding: 0 1rem 5rem;
+            padding: 1rem 1rem 6rem;
+            max-width: 100%;
+            overflow-x: hidden;
+            position: relative;
+            z-index: 1;
         }
         
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1rem;
+            gap: 0.875rem;
+            margin-bottom: 1.25rem;
         }
         
         .stat-card {
-            background: white;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
             padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stat-card:active {
+            transform: scale(0.98);
         }
         
         .stat-label {
-            font-size: 0.75rem;
-            color: #6b7280;
+            font-size: 0.7rem;
+            color: #64748b;
             margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: 0.35rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-label svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.7;
         }
         
         .stat-value {
-            font-size: 1.5rem;
+            font-size: 1.375rem;
             font-weight: 800;
-            line-height: 1;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #1e293b 0%, #4f46e5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.25rem;
         }
         
         .stat-change {
-            font-size: 0.75rem;
-            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            margin-top: 0.35rem;
+            font-weight: 600;
         }
         
         .section-card {
-            background: white;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
             padding: 1.25rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            margin-bottom: 1rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            margin-bottom: 1.25rem;
         }
         
         .section-title {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            color: #111827;
+            color: #0f172a;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+        
+        .section-title svg {
+            width: 18px;
+            height: 18px;
+            color: #6366f1;
         }
         
         .occupancy-bar {
-            height: 40px;
+            height: 36px;
             background: #f3f4f6;
             border-radius: 8px;
             overflow: hidden;
@@ -177,14 +250,14 @@ $logoFile = 'logo-alt.png';
             justify-content: center;
             color: white;
             font-weight: 700;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             transition: width 0.5s ease;
         }
         
         .occupancy-info {
             display: flex;
             justify-content: space-between;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #6b7280;
         }
         
@@ -192,8 +265,18 @@ $logoFile = 'logo-alt.png';
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f3f4f6;
+            padding: 0.875rem 0;
+            border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+            gap: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .transaction-item:hover {
+            padding-left: 0.5rem;
+            background: rgba(248, 250, 252, 0.5);
+            margin: 0 -0.5rem;
+            padding-right: 0.5rem;
+            border-radius: 8px;
         }
         
         .transaction-item:last-child {
@@ -202,6 +285,7 @@ $logoFile = 'logo-alt.png';
         
         .transaction-info {
             flex: 1;
+            min-width: 0;
         }
         
         .transaction-desc {
@@ -209,17 +293,22 @@ $logoFile = 'logo-alt.png';
             font-weight: 600;
             color: #111827;
             margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .transaction-meta {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #6b7280;
+            font-weight: 500;
         }
         
         .transaction-amount {
             font-size: 1rem;
             font-weight: 700;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         
         .bottom-nav {
@@ -283,29 +372,43 @@ $logoFile = 'logo-alt.png';
         /* Chart Container */
         .chart-container {
             position: relative;
-            height: 280px;
+            height: 260px;
             margin-top: 1rem;
+        }
+        
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 360px;
+            }
         }        
         .period-selector {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.375rem;
             margin-bottom: 1rem;
-            background: #f3f4f6;
-            padding: 0.25rem;
-            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.8);
+            padding: 0.35rem;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .period-btn {
             flex: 1;
-            padding: 0.5rem;
+            padding: 0.5rem 0.4rem;
             border: none;
             background: transparent;
-            border-radius: 6px;
-            font-size: 0.813rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
             font-weight: 600;
-            color: #6b7280;
+            color: #64748b;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .period-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            transform: translateY(-1px);
         }
         
         .period-btn.active {
@@ -349,6 +452,210 @@ $logoFile = 'logo-alt.png';
                 display: none;
             }
         }
+        
+        /* Business Button Styles */
+        .business-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+            padding: 1rem 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: center;
+            min-height: 90px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+        }
+        
+        .business-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(67, 56, 202, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .business-btn:hover::before {
+            opacity: 1;
+        }
+        
+        .business-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(99, 102, 241, 0.25), 0 0 24px rgba(139, 92, 246, 0.15);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+        
+        .business-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.5), 0 0 40px rgba(139, 92, 246, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .business-btn.active::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+        }
+        
+        .business-btn.all-branches {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+            border-color: #10b981;
+            color: white;
+        }
+        
+        .business-btn.all-branches.active {
+            background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+            box-shadow: 0 8px 28px rgba(16, 185, 129, 0.4), 0 0 30px rgba(52, 211, 153, 0.2);
+        }
+        
+        .business-icon {
+            font-size: 26px;
+            line-height: 1;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            transition: all 0.3s ease;
+        }
+        
+        .business-btn:hover .business-icon {
+            transform: scale(1.1);
+            filter: drop-shadow(0 3px 8px rgba(67, 56, 202, 0.3));
+        }
+        
+        .business-btn.active .business-icon {
+            filter: drop-shadow(0 2px 8px rgba(255,255,255,0.4));
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Health Indicator Styles */
+        .health-indicator {
+            background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%);
+            border-radius: 20px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: none;
+            animation: fadeIn 0.4s ease-in;
+        }
+        
+        .health-score {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+        
+        .health-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .health-badge.excellent {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+        }
+        
+        .health-badge.good {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            color: white;
+        }
+        
+        .health-badge.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            color: white;
+        }
+        
+        .health-badge.critical {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            color: white;
+        }
+        
+        .health-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .health-metric {
+            text-align: center;
+            padding: 0.875rem 0.5rem;
+            background: linear-gradient(135deg, rgba(241,245,249,0.8) 0%, rgba(248,250,252,0.8) 100%);
+            border-radius: 14px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            transition: all 0.2s;
+        }
+        
+        .health-metric:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+        
+        .health-metric-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.4rem;
+        }
+        
+        .health-metric-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .business-name {
+            font-size: 0.65rem;
+            font-weight: 600;
+            line-height: 1.1;
+            color: #374151;
+        }
+        
+        .business-btn.active .business-name {
+            color: white;
+        }
+        
+        .business-btn.all-branches .business-name {
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -374,23 +681,105 @@ $logoFile = 'logo-alt.png';
                     <div class="header-subtitle" id="currentTime">Loading...</div>
                 </div>
             </div>
-            <button class="refresh-btn" onclick="refreshData()" id="refreshBtn">
-                <i data-feather="refresh-cw" style="width: 20px; height: 20px;"></i>
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="manage-user-access.php" class="refresh-btn" style="text-decoration: none; color: white; display: flex; align-items: center;" title="Manage User Access">
+                    <i data-feather="users" style="width: 20px; height: 20px;"></i>
+                </a>
+                <button class="refresh-btn" onclick="refreshData()" id="refreshBtn">
+                    <i data-feather="refresh-cw" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
         </div>
     </div>
     
-    <div class="branch-selector">
-        <label style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem; display: block;">
-            <i data-feather="map-pin" style="width: 14px; height: 14px;"></i>
-            Select Branch
-        </label>
-        <select class="branch-select" id="branchSelect" onchange="loadBranchData()">
-            <option value="">Loading branches...</option>
-        </select>
+    <!-- Business Selector - Button Grid -->
+    <div class="business-selector" style="padding: 1.25rem; background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%); border-radius: 20px; margin: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div style="font-size: 0.9rem; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-feather="briefcase" style="width: 16px; height: 16px; color: #6366f1;"></i>
+                Pilih Bisnis Anda
+            </div>
+            <div id="selectedBusinessName" style="font-size: 0.75rem; color: #6366f1; font-weight: 600; background: rgba(99, 102, 241, 0.1); padding: 0.3rem 0.75rem; border-radius: 8px;">All Businesses</div>
+        </div>
+        <div id="businessButtons" class="business-buttons-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.875rem;">
+            <!-- Buttons will be inserted here by JavaScript -->
+        </div>
     </div>
     
-    <div class="content-wrapper">
+    <!-- AI Health Indicator - Otomatis berubah sesuai bisnis -->
+    <div id="healthIndicator" class="health-indicator" style="margin: 1rem; display: none;">
+        <div class="health-score">
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">
+                    🤖 AI Health Score
+                </div>
+                <div id="businessNameHealth" style="font-size: 0.875rem; font-weight: 600; color: #1e293b;"></div>
+            </div>
+            <div id="healthBadge" class="health-badge excellent">
+                <span>●</span>
+                <span id="healthStatus">Excellent</span>
+            </div>
+        </div>
+        <div class="health-metrics">
+            <div class="health-metric">
+                <div class="health-metric-label">Profit</div>
+                <div class="health-metric-value" id="healthProfit">0%</div>
+            </div>
+            <div class="health-metric">
+                <div class="health-metric-label">Growth</div>
+                <div class="health-metric-value" id="healthGrowth">0%</div>
+            </div>
+            <div class="health-metric">
+                <div class="health-metric-label">Efficiency</div>
+                <div class="health-metric-value" id="healthEfficiency">0%</div>
+            </div>
+        </div>
+        <div id="healthRecommendation" style="margin-top: 1rem; padding: 0.875rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%); border-radius: 14px; font-size: 0.8rem; color: #475569; line-height: 1.5; border: 1px solid rgba(99, 102, 241, 0.2); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);">
+            <strong style="color: #4f46e5; font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.1rem;">💡</span> Smart AI Insight
+            </strong>
+            <span id="healthInsight" style="display: block; color: #334155; font-weight: 500;">Loading intelligent analysis...</span>
+        </div>
+    </div>
+    
+    <!-- Comparison View - Only visible when All Branches selected -->
+    <div id="comparisonView" class="content-wrapper" style="display: none;">
+        <div class="section-card">
+            <div class="section-title">
+                <i data-feather="pie-chart" style="width: 20px; height: 20px; color: #4338ca;"></i>
+                <span>Business Comparison</span>
+            </div>
+            <div class="period-selector">
+                <button class="period-btn active" onclick="changeComparisonPeriod('today')" data-period="today">
+                    Today
+                </button>
+                <button class="period-btn" onclick="changeComparisonPeriod('this_month')" data-period="this_month">
+                    This Month
+                </button>
+                <button class="period-btn" onclick="changeComparisonPeriod('this_year')" data-period="this_year">
+                    This Year
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div>
+                    <h4 style="margin: 0 0 15px 0; font-size: 0.875rem; color: #6b7280;">Income by Business</h4>
+                    <canvas id="incomeComparisonChart" style="max-height: 300px;"></canvas>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 15px 0; font-size: 0.875rem; color: #6b7280;">Expense by Business</h4>
+                    <canvas id="expenseComparisonChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Business Cards Grid -->
+        <div id="businessCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 20px;">
+            <!-- Business cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Single Branch View - visible by default -->
+    <div id="singleBranchView" class="content-wrapper">
         <!-- Chart Section - MOVED TO TOP -->
         <div class="section-card">
             <div class="section-title">
@@ -498,6 +887,7 @@ $logoFile = 'logo-alt.png';
             </div>
         </div>
     </div>
+    <!-- End Single Branch View -->
     
     <div class="bottom-nav">
         <a href="#" class="nav-item active">
@@ -522,15 +912,25 @@ $logoFile = 'logo-alt.png';
         let currentBranchId = null;
         let weeklyChart = null;
         let currentPeriod = '7days';
+        let currentComparisonPeriod = 'today';
+        let incomeComparisonChart = null;
+        let expenseComparisonChart = null;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== Owner Dashboard Loaded ===');
+            console.log('Chart.js available:', typeof Chart !== 'undefined');
+            
             feather.replace();
             updateCurrentTime();
             setInterval(updateCurrentTime, 1000);
             
             // Initialize chart first, then load data
+            console.log('Initializing chart...');
             initChart();
+            console.log('Chart initialized:', weeklyChart);
+            
+            console.log('Loading branches...');
             loadBranches(); // This will trigger loadBranchData which loads chart data
             
             // Pull to refresh
@@ -585,26 +985,72 @@ $logoFile = 'logo-alt.png';
                 const data = await response.json();
                 
                 if (data.success) {
-                    const select = document.getElementById('branchSelect');
-                    select.innerHTML = '<option value="">All Branches</option>';
+                    const container = document.getElementById('businessButtons');
+                    container.innerHTML = '';
                     
+                    // Business icons mapping
+                    const businessIcons = {
+                        'narayana hotel': '🏨',
+                        'bens cafe': '☕',
+                        'eat & meet': '🍽️',
+                        'furniture': '🪑',
+                        'karimunjawa': '⛵',
+                        'pabrik kapal': '🚢'
+                    };
+                    
+                    // Add "All Businesses" button
+                    const allBtn = document.createElement('button');
+                    allBtn.className = 'business-btn all-branches active';
+                    allBtn.onclick = () => selectBusiness(null, 'All Businesses');
+                    allBtn.innerHTML = `
+                        <div class="business-icon">🏢</div>
+                        <div class="business-name">All<br>Businesses</div>
+                    `;
+                    container.appendChild(allBtn);
+                    
+                    // Add individual business buttons
                     data.branches.forEach(branch => {
-                        const option = document.createElement('option');
-                        option.value = branch.id;
-                        option.textContent = `${branch.branch_name} - ${branch.city}`;
-                        select.appendChild(option);
+                        const btn = document.createElement('button');
+                        btn.className = 'business-btn';
+                        btn.dataset.branchId = branch.id;
+                        btn.onclick = () => selectBusiness(branch.id, branch.branch_name);
+                        
+                        // Find matching icon
+                        let icon = '🏢';
+                        const nameLower = branch.branch_name.toLowerCase();
+                        for (const [key, value] of Object.entries(businessIcons)) {
+                            if (nameLower.includes(key)) {
+                                icon = value;
+                                break;
+                            }
+                        }
+                        
+                        // Shorten name if too long
+                        let displayName = branch.branch_name;
+                        if (displayName.length > 20) {
+                            displayName = displayName.substring(0, 18) + '...';
+                        }
+                        // Add line break for better display
+                        displayName = displayName.replace(/ - /g, '<br>').replace(/ /g, ' ');
+                        
+                        btn.innerHTML = `
+                            <div class="business-icon">${icon}</div>
+                            <div class="business-name">${displayName}</div>
+                        `;
+                        container.appendChild(btn);
                     });
                     
-                    // Load data for first branch or all branches
-                    if (data.branches.length > 0) {
-                        select.selectedIndex = 1;
-                        currentBranchId = data.branches[0].id;
-                    } else {
-                        currentBranchId = null; // All branches
-                    }
+                    feather.replace();
                     
-                    // Always load data after branches are loaded
-                    loadBranchData();
+                    // Auto-select first business instead of All Businesses
+                    if (data.branches && data.branches.length > 0) {
+                        const firstBusiness = data.branches[0];
+                        selectBusiness(firstBusiness.id, firstBusiness.branch_name);
+                    } else {
+                        // Fallback to All Businesses if no branches
+                        currentBranchId = null;
+                        loadBranchData();
+                    }
                 } else {
                     console.error('Failed to load branches:', data);
                     // Even if no branches, try to load data
@@ -617,16 +1063,137 @@ $logoFile = 'logo-alt.png';
             }
         }
         
-        async function loadBranchData() {
-            const select = document.getElementById('branchSelect');
-            currentBranchId = select.value;
+        function selectBusiness(branchId, branchName) {
+            currentBranchId = branchId;
             
-            await Promise.all([
-                loadStats(),
-                loadOccupancy(),
-                loadChartData(),
-                loadRecentTransactions()
-            ]);
+            // Update button active states
+            document.querySelectorAll('.business-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (branchId === null) {
+                document.querySelector('.business-btn.all-branches').classList.add('active');
+                // Hide health indicator for All Businesses
+                document.getElementById('healthIndicator').style.display = 'none';
+            } else {
+                const selectedBtn = document.querySelector(`[data-branch-id="${branchId}"]`);
+                if (selectedBtn) selectedBtn.classList.add('active');
+                // Show and load health indicator for specific business
+                loadHealthIndicator(branchId, branchName);
+            }
+            
+            // Update selected business name display
+            document.getElementById('selectedBusinessName').textContent = branchName;
+            
+            // Load data for selected business
+            loadBranchData();
+        }
+        
+        async function loadHealthIndicator(branchId, branchName) {
+            try {
+                // Fetch stats for this business
+                const response = await fetch(`../../api/owner-stats.php?branch_id=${branchId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    // Calculate metrics
+                    const todayIncome = parseFloat(stats.today_income) || 0;
+                    const todayExpense = parseFloat(stats.today_expense) || 0;
+                    const monthIncome = parseFloat(stats.month_income) || 0;
+                    const monthExpense = parseFloat(stats.month_expense) || 0;
+                    
+                    // Profit Margin (current month)
+                    const profitMargin = monthIncome > 0 
+                        ? ((monthIncome - monthExpense) / monthIncome * 100) 
+                        : 0;
+                    
+                    // Growth Rate (compare today vs average daily)
+                    const today = new Date();
+                    const dayOfMonth = today.getDate();
+                    const avgDailyIncome = monthIncome / dayOfMonth;
+                    const growthRate = avgDailyIncome > 0 
+                        ? ((todayIncome - avgDailyIncome) / avgDailyIncome * 100) 
+                        : 0;
+                    
+                    // Efficiency Score (revenue per expense)
+                    const efficiency = (monthIncome + monthExpense) > 0 
+                        ? (monthIncome / (monthIncome + monthExpense) * 100) 
+                        : 50;
+                    
+                    // Calculate overall health score (weighted average)
+                    const healthScore = (profitMargin * 0.5) + (Math.min(Math.max(growthRate, 0), 100) * 0.3) + (efficiency * 0.2);
+                    
+                    // Determine health status
+                    let healthStatus, healthClass;
+                    if (healthScore >= 80) {
+                        healthStatus = 'Excellent';
+                        healthClass = 'excellent';
+                    } else if (healthScore >= 60) {
+                        healthStatus = 'Good';
+                        healthClass = 'good';
+                    } else if (healthScore >= 40) {
+                        healthStatus = 'Warning';
+                        healthClass = 'warning';
+                    } else {
+                        healthStatus = 'Critical';
+                        healthClass = 'critical';
+                    }
+                    
+                    // Generate AI insight
+                    let insight = '';
+                    if (profitMargin < 20) {
+                        insight = '💡 Margin keuntungan rendah. Pertimbangkan optimalisasi biaya operasional atau tingkatkan harga jual.';
+                    } else if (profitMargin >= 50) {
+                        insight = '🎯 Performa sangat baik! Pertahankan strategi bisnis yang ada dan pertimbangkan ekspansi.';
+                    } else if (growthRate < -10) {
+                        insight = '📉 Tren penurunan terdeteksi. Fokus pada retensi pelanggan dan strategi marketing.';
+                    } else if (efficiency < 60) {
+                        insight = '⚠️ Rasio expense tinggi. Review struktur biaya dan identifikasi area penghematan.';
+                    } else if (healthScore >= 70) {
+                        insight = '✨ Bisnis dalam kondisi sehat. Terus monitor performa dan maintain service quality.';
+                    } else {
+                        insight = '📊 Performa stabil. Cari peluang untuk meningkatkan efisiensi dan revenue.';
+                    }
+                    
+                    // Update UI
+                    document.getElementById('businessNameHealth').textContent = branchName;
+                    document.getElementById('healthBadge').className = `health-badge ${healthClass}`;
+                    document.getElementById('healthStatus').textContent = healthStatus;
+                    document.getElementById('healthProfit').textContent = `${profitMargin.toFixed(1)}%`;
+                    document.getElementById('healthGrowth').textContent = `${growthRate.toFixed(1)}%`;
+                    document.getElementById('healthEfficiency').textContent = `${efficiency.toFixed(1)}%`;
+                    document.getElementById('healthInsight').textContent = insight;
+                    
+                    // Show the health indicator with animation
+                    const healthIndicator = document.getElementById('healthIndicator');
+                    healthIndicator.style.display = 'block';
+                    healthIndicator.style.animation = 'fadeIn 0.3s ease-in';
+                }
+            } catch (error) {
+                console.error('Error loading health indicator:', error);
+            }
+        }
+        
+        async function loadBranchData() {
+            // Toggle views based on selection
+            if (currentBranchId === null) {
+                // Show comparison view for All Branches
+                document.getElementById('singleBranchView').style.display = 'none';
+                document.getElementById('comparisonView').style.display = 'block';
+                loadComparisonData();
+            } else {
+                // Show single branch view
+                document.getElementById('singleBranchView').style.display = 'block';
+                document.getElementById('comparisonView').style.display = 'none';
+                await Promise.all([
+                    loadStats(),
+                    loadOccupancy(),
+                    loadChartData(),
+                    loadRecentTransactions()
+                ]);
+            }
         }
         
         async function loadStats() {
@@ -788,7 +1355,15 @@ $logoFile = 'logo-alt.png';
         }
         
         function initChart() {
-            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            const canvas = document.getElementById('weeklyChart');
+            if (!canvas) {
+                console.error('Canvas element weeklyChart not found!');
+                return;
+            }
+            
+            console.log('Initializing chart on canvas:', canvas);
+            const ctx = canvas.getContext('2d');
+            
             weeklyChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -876,6 +1451,167 @@ $logoFile = 'logo-alt.png';
         
         function showOccupancy() {
             alert('Detailed occupancy feature will be available in the next update');
+        }
+        
+        // ===== COMPARISON VIEW FUNCTIONS =====
+        async function loadComparisonData() {
+            try {
+                const response = await fetch(`../../api/owner-comparison.php?period=${currentComparisonPeriod}`);
+                const data = await response.json();
+                
+                console.log('Comparison data:', data);
+                
+                if (data.success && data.businesses) {
+                    renderComparisonCharts(data);
+                    renderBusinessCards(data.businesses);
+                }
+            } catch (error) {
+                console.error('Error loading comparison data:', error);
+            }
+        }
+        
+        function renderComparisonCharts(data) {
+            const businesses = data.businesses;
+            const labels = businesses.map(b => b.name);
+            const incomeData = businesses.map(b => b.income);
+            const expenseData = businesses.map(b => b.expense);
+            
+            // Destroy existing charts
+            if (incomeComparisonChart) incomeComparisonChart.destroy();
+            if (expenseComparisonChart) expenseComparisonChart.destroy();
+            
+            // Income Chart (Pie)
+            const incomeCtx = document.getElementById('incomeComparisonChart').getContext('2d');
+            incomeComparisonChart = new Chart(incomeCtx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: incomeData,
+                        backgroundColor: [
+                            '#4338ca', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 10 }, padding: 10 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = formatRupiah(context.parsed);
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Expense Chart (Pie)
+            const expenseCtx = document.getElementById('expenseComparisonChart').getContext('2d');
+            expenseComparisonChart = new Chart(expenseCtx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: expenseData,
+                        backgroundColor: [
+                            '#ef4444', '#f59e0b', '#10b981', '#4338ca', '#8b5cf6', '#ec4899'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 10 }, padding: 10 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = formatRupiah(context.parsed);
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderBusinessCards(businesses) {
+            const container = document.getElementById('businessCardsGrid');
+            container.innerHTML = '';
+            
+            businesses.forEach(business => {
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => {
+                    document.getElementById('branchSelect').value = business.id;
+                    loadBranchData();
+                };
+                
+                const net = business.net;
+                const netColor = net >= 0 ? '#10b981' : '#ef4444';
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: #1f2937;">${business.name}</h3>
+                        <i data-feather="arrow-right" style="width: 16px; height: 16px; color: #6b7280;"></i>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 5px;">Income</div>
+                            <div style="font-size: 0.875rem; font-weight: 700; color: #10b981;">${formatRupiah(business.income)}</div>
+                            <div style="font-size: 0.7rem; color: #9ca3af;">${business.income_count} transactions</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 5px;">Expense</div>
+                            <div style="font-size: 0.875rem; font-weight: 700; color: #ef4444;">${formatRupiah(business.expense)}</div>
+                            <div style="font-size: 0.7rem; color: #9ca3af;">${business.expense_count} transactions</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 5px;">Net Profit/Loss</div>
+                        <div style="font-size: 1rem; font-weight: 700; color: ${netColor};">
+                            ${net >= 0 ? '+' : ''}${formatRupiah(net)}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            feather.replace();
+        }
+        
+        function changeComparisonPeriod(period) {
+            currentComparisonPeriod = period;
+            
+            // Update button states
+            document.querySelectorAll('#comparisonView .period-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-period') === period) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            loadComparisonData();
         }
         
         // Auto refresh every 2 minutes
