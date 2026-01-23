@@ -44,17 +44,40 @@ if ($status !== '') {
 
 $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
 
-$suppliers = $db->fetchAll("
-    SELECT 
-        s.*,
-        u.full_name as created_by_name,
-        (SELECT COUNT(*) FROM purchase_orders_header WHERE supplier_id = s.id) as po_count,
-        0 as invoice_count
-    FROM suppliers s
-    LEFT JOIN users u ON s.created_by = u.id
-    {$where_clause}
-    ORDER BY s.supplier_name
-", $params);
+// Check if purchase_orders_header table exists
+$tableExists = false;
+try {
+    $tableCheck = $db->fetchOne("SHOW TABLES LIKE 'purchase_orders_header'");
+    $tableExists = !empty($tableCheck);
+} catch (Exception $e) {
+    $tableExists = false;
+}
+
+if ($tableExists) {
+    $suppliers = $db->fetchAll("
+        SELECT 
+            s.*,
+            u.full_name as created_by_name,
+            (SELECT COUNT(*) FROM purchase_orders_header WHERE supplier_id = s.id) as po_count,
+            0 as invoice_count
+        FROM suppliers s
+        LEFT JOIN users u ON s.created_by = u.id
+        {$where_clause}
+        ORDER BY s.supplier_name
+    ", $params);
+} else {
+    $suppliers = $db->fetchAll("
+        SELECT 
+            s.*,
+            u.full_name as created_by_name,
+            0 as po_count,
+            0 as invoice_count
+        FROM suppliers s
+        LEFT JOIN users u ON s.created_by = u.id
+        {$where_clause}
+        ORDER BY s.supplier_name
+    ", $params);
+}
 
 include '../../includes/header.php';
 ?>
