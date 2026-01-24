@@ -171,7 +171,7 @@ if (isset($_SESSION['user_id'])) {
                     <li class="nav-item has-submenu <?php echo (strpos($_SERVER['REQUEST_URI'], '/procurement/') !== false) ? 'open' : ''; ?>">
                         <a href="javascript:void(0)" class="nav-link dropdown-toggle <?php echo activeMenu('procurement'); ?>">
                             <i data-feather="shopping-cart" class="nav-icon"></i>
-                            <span>Procurement</span>
+                            <span>PO/Shop</span>
                         </a>
                         <ul class="submenu">
                             <li class="submenu-item">
