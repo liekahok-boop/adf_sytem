@@ -43,7 +43,7 @@ $items = $db->fetchAll("
 
 // Get company/hotel info from active business configuration
 $companySettings = [
-    'name' => BUSINESS_NAME,
+    'name' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_name'")['setting_value'] ?? BUSINESS_NAME,
     'business_icon' => BUSINESS_ICON,
     'business_color' => BUSINESS_COLOR,
     'address' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_address'")['setting_value'] ?? '',
@@ -55,6 +55,298 @@ $companySettings = [
 
 // Use invoice logo if available, otherwise use company logo
 $displayLogo = $companySettings['invoice_logo'] ?? $companySettings['logo'];
+
+// Convert relative path to absolute for PDF export
+$absoluteLogoPath = null;
+if ($displayLogo) {
+    if (strpos($displayLogo, 'http') === 0) {
+        $absoluteLogoPath = $displayLogo; // Already absolute URL
+    } elseif (file_exists($_SERVER['DOCUMENT_ROOT'] . $displayLogo)) {
+        $absoluteLogoPath = $_SERVER['DOCUMENT_ROOT'] . $displayLogo;
+    } elseif (file_exists($displayLogo)) {
+        $absoluteLogoPath = $displayLogo; // Already correct path
+    }
+}
+
+// Handle PDF export
+if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
+    // Generate invoice content for PDF download
+    $invoiceHtml = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Invoice ' . htmlspecialchars($invoice['invoice_number']) . '</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+                font-family: "Arial", sans-serif; 
+                font-size: 12px; 
+                color: #2c3e50;
+                padding: 20px;
+            }
+            .invoice-container { 
+                max-width: 210mm;
+                margin: 0 auto;
+                background: white;
+                padding: 20mm;
+            }
+            .header-section {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid ' . $companySettings['business_color'] . ';
+            }
+            .company-header {
+                display: flex;
+                gap: 15px;
+                flex: 1;
+            }
+            .company-logo {
+                width: 60px;
+                height: 60px;
+                flex-shrink: 0;
+                overflow: hidden;
+            }
+            .company-logo img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            .company-info {
+                flex: 1;
+            }
+            .company-name { 
+                font-size: 18px; 
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+            .company-details {
+                font-size: 10px;
+                color: #666;
+                line-height: 1.6;
+            }
+            .invoice-meta {
+                text-align: right;
+                font-size: 11px;
+            }
+            .invoice-number {
+                font-size: 16px;
+                font-weight: bold;
+                color: ' . $companySettings['business_color'] . ';
+            }
+            .status-badge {
+                display: inline-block;
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 10px;
+                margin-top: 5px;
+            }
+            .status-paid { background: #d4edda; color: #155724; }
+            .status-unpaid { background: #f8d7da; color: #721c24; }
+            .status-partial { background: #fff3cd; color: #856404; }
+            
+            .section-title {
+                font-size: 10px;
+                font-weight: bold;
+                text-transform: uppercase;
+                color: #666;
+                margin: 15px 0 8px 0;
+            }
+            
+            .customer-info {
+                font-size: 11px;
+                margin-bottom: 15px;
+            }
+            .customer-name {
+                font-size: 12px;
+                font-weight: bold;
+                margin-bottom: 3px;
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+                font-size: 10px;
+            }
+            
+            th {
+                background: ' . $companySettings['business_color'] . ';
+                color: white;
+                padding: 8px;
+                text-align: left;
+                font-weight: bold;
+            }
+            
+            td {
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+            
+            tr:nth-child(even) {
+                background: #f9f9f9;
+            }
+            
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            
+            .summary {
+                width: 300px;
+                margin-left: auto;
+                margin: 15px 0 0 0;
+            }
+            
+            .summary-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 5px 0;
+                font-size: 11px;
+            }
+            
+            .summary-row.total {
+                border-top: 2px solid ' . $companySettings['business_color'] . ';
+                padding-top: 8px;
+                font-weight: bold;
+                font-size: 12px;
+                color: ' . $companySettings['business_color'] . ';
+            }
+            
+            .notes {
+                margin-top: 15px;
+                padding: 10px;
+                background: #f5f5f5;
+                border-radius: 4px;
+                font-size: 10px;
+            }
+            
+            .notes-title {
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+            
+            .footer {
+                margin-top: 20px;
+                padding-top: 15px;
+                border-top: 1px solid #ddd;
+                text-align: center;
+                font-size: 10px;
+                color: #666;
+            }
+            
+            @media print {
+                body { padding: 0; }
+                .invoice-container { padding: 0; margin: 0; }
+            }
+        </style>
+    </head>
+    <body onload="window.print();">
+        <div class="invoice-container">
+            <div class="header-section">
+                <div class="company-header">
+                    ' . ($absoluteLogoPath && file_exists($absoluteLogoPath) ? 
+                        '<div class="company-logo"><img src="file:///' . str_replace('\\', '/', $absoluteLogoPath) . '" alt="Logo"></div>' : 
+                        '') . '
+                    <div class="company-info">
+                        <div class="company-name">' . htmlspecialchars($companySettings['name']) . '</div>
+                        <div class="company-details">
+                            ' . ($companySettings['address'] ? htmlspecialchars($companySettings['address']) . '<br>' : '') . '
+                            ' . ($companySettings['phone'] ? 'Tel: ' . htmlspecialchars($companySettings['phone']) . '<br>' : '') . '
+                            ' . ($companySettings['email'] ? 'Email: ' . htmlspecialchars($companySettings['email']) : '') . '
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="invoice-meta">
+                    <div class="invoice-number">' . htmlspecialchars($invoice['invoice_number']) . '</div>
+                    <div>' . date('d M Y', strtotime($invoice['invoice_date'])) . '</div>
+                    <span class="status-badge ' . ($invoice['payment_status'] === 'paid' ? 'status-paid' : ($invoice['payment_status'] === 'unpaid' ? 'status-unpaid' : 'status-partial')) . '">
+                        ' . ($invoice['payment_status'] === 'paid' ? '✓ LUNAS' : ($invoice['payment_status'] === 'unpaid' ? '⏳ BELUM BAYAR' : '⚠ SEBAGIAN')) . '
+                    </span>
+                </div>
+            </div>
+            
+            <div class="section-title">Kepada:</div>
+            <div class="customer-info">
+                <div class="customer-name">' . htmlspecialchars($invoice['customer_name']) . '</div>
+                ' . ($invoice['customer_address'] ? '<div>' . htmlspecialchars($invoice['customer_address']) . '</div>' : '') . '
+                ' . ($invoice['customer_phone'] ? '<div>Tel: ' . htmlspecialchars($invoice['customer_phone']) . '</div>' : '') . '
+                ' . ($invoice['customer_email'] ? '<div>Email: ' . htmlspecialchars($invoice['customer_email']) . '</div>' : '') . '
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30px;">#</th>
+                        <th>Item / Layanan</th>
+                        <th style="width: 60px;" class="text-center">Qty</th>
+                        <th style="width: 80px;" class="text-right">Harga</th>
+                        <th style="width: 80px;" class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>';
+                
+    $no = 1;
+    foreach ($items as $item) {
+        $invoiceHtml .= '
+                    <tr>
+                        <td class="text-center">' . $no . '</td>
+                        <td>
+                            <strong>' . htmlspecialchars($item['item_name']) . '</strong>
+                            ' . ($item['item_description'] ? '<br><small>' . htmlspecialchars($item['item_description']) . '</small>' : '') . '
+                        </td>
+                        <td class="text-center">' . number_format($item['quantity'], 0, ',', '.') . '</td>
+                        <td class="text-right">Rp ' . number_format($item['unit_price'], 0, ',', '.') . '</td>
+                        <td class="text-right"><strong>Rp ' . number_format($item['quantity'] * $item['unit_price'], 0, ',', '.') . '</strong></td>
+                    </tr>';
+        $no++;
+    }
+    
+    $invoiceHtml .= '
+                </tbody>
+            </table>
+            
+            <div class="summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>Rp ' . number_format($invoice['subtotal'], 0, ',', '.') . '</span>
+                </div>
+                ' . ($invoice['discount_amount'] > 0 ? '
+                <div class="summary-row" style="color: #ef4444;">
+                    <span>Diskon</span>
+                    <span>- Rp ' . number_format($invoice['discount_amount'], 0, ',', '.') . '</span>
+                </div>' : '') . '
+                ' . ($invoice['tax_amount'] > 0 ? '
+                <div class="summary-row">
+                    <span>Pajak</span>
+                    <span>Rp ' . number_format($invoice['tax_amount'], 0, ',', '.') . '</span>
+                </div>' : '') . '
+                <div class="summary-row total">
+                    <span>TOTAL</span>
+                    <span>Rp ' . number_format($invoice['total_amount'], 0, ',', '.') . '</span>
+                </div>
+            </div>
+            
+            ' . ($invoice['notes'] ? '
+            <div class="notes">
+                <div class="notes-title">Catatan:</div>
+                ' . htmlspecialchars($invoice['notes']) . '
+            </div>' : '') . '
+            
+            <div class="footer">
+                <strong>' . htmlspecialchars($companySettings['name']) . '</strong><br>
+                Terima kasih atas kepercayaan Anda.
+            </div>
+        </div>
+    </body>
+    </html>';
+    
+    // Output as HTML with print dialog
+    header('Content-Type: text/html; charset=utf-8');
+    echo $invoiceHtml;
+    exit;
+}
 
 if ($print_mode) {
     // Print layout
@@ -101,6 +393,24 @@ if ($print_mode) {
                 flex: 1;
             }
             
+            .company-logo {
+                width: 70px;
+                height: 70px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f5f5f5;
+                border-radius: 8px;
+                overflow: hidden;
+                flex-shrink: 0;
+            }
+            
+            .company-logo img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+            
             .company-icon {
                 font-size: 48px;
                 line-height: 1;
@@ -123,8 +433,9 @@ if ($print_mode) {
             
             .company-details {
                 font-size: 11px;
-                color: #555;
-                line-height: 1.6;
+                color: #666;
+                line-height: 1.7;
+                margin: 3px 0 0 0;
             }
             
             .invoice-meta {
@@ -365,7 +676,15 @@ if ($print_mode) {
             <!-- Premium Header -->
             <div class="header-section">
                 <div class="company-header">
-                    <div class="company-icon"><?php echo $companySettings['business_icon']; ?></div>
+                    <?php if ($displayLogo && file_exists($displayLogo)): ?>
+                        <div class="company-logo">
+                            <img src="<?php echo $displayLogo; ?>" alt="Logo">
+                        </div>
+                    <?php else: ?>
+                        <div class="company-logo" style="font-size: 40px; color: <?php echo $companySettings['business_color']; ?>;">
+                            <?php echo $companySettings['business_icon']; ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="company-info">
                         <div class="company-name"><?php echo $companySettings['name']; ?></div>
                         <div class="company-details">
@@ -550,6 +869,9 @@ include '../../includes/header.php';
             <i data-feather="arrow-left" style="width: 16px; height: 16px;"></i> Kembali
         </a>
         <div style="display: flex; gap: 0.75rem;">
+            <a href="view-invoice.php?id=<?php echo $invoice_id; ?>&export=pdf" class="btn btn-success">
+                <i data-feather="download" style="width: 16px; height: 16px;"></i> Export PDF
+            </a>
             <a href="view-invoice.php?id=<?php echo $invoice_id; ?>&print=1" target="_blank" class="btn btn-primary">
                 <i data-feather="printer" style="width: 16px; height: 16px;"></i> Print Invoice
             </a>

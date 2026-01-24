@@ -481,10 +481,10 @@ include '../../includes/header.php';
                                 </span>
                             </td>
                             <td>
-                                <?php if ($user['is_trial']): ?>
+                                <?php if ($user['is_trial'] ?? false): ?>
                                     <?php 
                                         $now = new DateTime();
-                                        $expires = new DateTime($user['trial_expires_at']);
+                                        $expires = new DateTime($user['trial_expires_at'] ?? 'now');
                                         $isExpired = $now > $expires;
                                         $diff = $now->diff($expires);
                                         $daysLeft = $isExpired ? 0 : $diff->days;
