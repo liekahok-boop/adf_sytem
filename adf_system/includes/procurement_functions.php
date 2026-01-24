@@ -159,13 +159,15 @@ function createPurchaseOrder($supplier_id, $po_date, $items, $options = []) {
         foreach ($validated_items as $item) {
             $detail_data = [
                 'po_header_id' => $po_header_id,
+                'line_number' => $item['line_number'],
                 'item_name' => $item['item_name'],
                 'item_description' => $item['item_description'],
                 'unit_of_measure' => $item['unit_of_measure'],
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'total_price' => $item['subtotal'],
+                'subtotal' => $item['subtotal'],
                 'division_id' => $item['division_id'],
+                'received_quantity' => 0,
                 'notes' => $item['notes']
             ];
             
