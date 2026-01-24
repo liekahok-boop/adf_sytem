@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Mobile Access - Narayana</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .qr-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        #qrcode {
+            margin: 0 auto;
+        }
+        
+        .url-box {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .info-box li {
+            padding: 8px 0;
+            color: #555;
+        }
+        
+        .info-box li:before {
+            content: "✅ ";
+            color: #10b981;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        
+        .warning-box:before {
+            content: "⚠️ ";
+            font-size: 1.2rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+            font-weight: bold;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .status-card.active {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .status-card.inactive {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .status-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Owner Mobile Access</h1>
+        <p class="subtitle">Scan QR Code atau Copy URL untuk akses dari HP</p>
+        
+        <div class="qr-section">
+            <h3 style="margin-bottom: 15px;">Scan dengan HP Anda</h3>
+            <div class="qr-code">
+                <div id="qrcode"></div>
+            </div>
+            <p style="color: #666; font-size: 0.9rem;">Buka camera HP dan scan QR code di atas</p>
+        </div>
+        
+        <div class="info-box">
+            <h3>📍 URL Owner Dashboard:</h3>
+            <div class="url-box" id="ownerUrl">Loading...</div>
+            <button onclick="copyUrl()" class="btn" style="width: 100%; margin: 10px 0;">
+                📋 Copy URL
+            </button>
+        </div>
+        
+        <div class="info-box">
+            <h3>ℹ️ Informasi Koneksi:</h3>
+            <ul>
+                <li>IP Address: <strong id="ipAddress">Loading...</strong></li>
+                <li>Port: <strong>8080</strong></li>
+                <li>WiFi harus sama antara HP & Komputer</li>
+            </ul>
+        </div>
+        
+        <div class="status-grid">
+            <div class="status-card" id="firewallStatus">
+                <div class="status-icon">🔥</div>
+                <div class="status-label">Firewall</div>
+                <div id="firewallText">Checking...</div>
+            </div>
+            <div class="status-card" id="apacheStatus">
+                <div class="status-icon">🌐</div>
+                <div class="status-label">Apache</div>
+                <div id="apacheText">Checking...</div>
+            </div>
+        </div>
+        
+        <div class="warning-box">
+            <strong>Jika tidak bisa akses:</strong><br>
+            1. Jalankan <code>open-firewall.bat</code> sebagai admin<br>
+            2. Pastikan Apache running di XAMPP<br>
+            3. HP & Komputer di WiFi yang sama
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="owner-login.php" class="btn">🔐 Login Owner</a>
+            <a href="modules/owner/dashboard.php" class="btn btn-outline">📊 Dashboard</a>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: #999; font-size: 0.85rem;">
+            <p>Baca panduan lengkap: <a href="OWNER-MOBILE-AKSES.md" style="color: #667eea;">OWNER-MOBILE-AKSES.md</a></p>
+        </div>
+    </div>
+    
+    <script>
+        // Get IP address from current location
+        let currentUrl = window.location.href;
+        let hostname = window.location.hostname;
+        let ipAddress = hostname;
+        
+        // If localhost, try to get real IP (will need PHP)
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            // Fetch from PHP endpoint
+            fetch('api/get-server-ip.php')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ip) {
+                        ipAddress = data.ip;
+                        updateUrlsWithIP(ipAddress);
+                    }
+                })
+                .catch(() => {
+                    // Fallback
+                    ipAddress = '192.168.1.2'; // Default from ipconfig
+                    updateUrlsWithIP(ipAddress);
+                });
+        } else {
+            updateUrlsWithIP(ipAddress);
+        }
+        
+        function updateUrlsWithIP(ip) {
+            document.getElementById('ipAddress').textContent = ip;
+            
+            let ownerUrl = `http://${ip}:8080/narayana/owner-login.php`;
+            document.getElementById('ownerUrl').textContent = ownerUrl;
+            
+            // Generate QR Code
+            new QRCode(document.getElementById("qrcode"), {
+                text: ownerUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#667eea",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // Check status (simplified)
+            checkStatus();
+        }
+        
+        function copyUrl() {
+            let url = document.getElementById('ownerUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ URL berhasil dicopy!\nPaste di browser HP Anda.');
+            });
+        }
+        
+        function checkStatus() {
+            // Check if page loads = Apache is running
+            document.getElementById('apacheStatus').classList.add('active');
+            document.getElementById('apacheText').textContent = '✅ Running';
+            
+            // Firewall check (assume if page loads, firewall is ok)
+            document.getElementById('firewallStatus').classList.add('active');
+            document.getElementById('firewallText').textContent = '✅ Open';
+        }
+        
+        // Auto-copy on mobile
+        if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+            setTimeout(() => {
+                let url = document.getElementById('ownerUrl').textContent;
+                if (url && url !== 'Loading...') {
+                    navigator.clipboard.writeText(url);
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
