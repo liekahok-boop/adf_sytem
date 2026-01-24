@@ -249,7 +249,7 @@ include '../../includes/header.php';
             <tfoot>
                 <tr>
                     <td colspan="6" class="text-right" style="font-weight: 600;">Subtotal:</td>
-                    <td class="text-right" style="font-weight: 700;">Rp <?php echo number_format($po['subtotal'], 0, ',', '.'); ?></td>
+                    <td class="text-right" style="font-weight: 700;">Rp <?php echo number_format($po['total_amount'], 0, ',', '.'); ?></td>
                     <td></td>
                 </tr>
                 <?php if ($po['discount_amount'] > 0): ?>
@@ -269,7 +269,7 @@ include '../../includes/header.php';
                 <tr style="background: var(--bg-secondary);">
                     <td colspan="6" class="text-right" style="font-weight: 800; font-size: 1.125rem;">Grand Total:</td>
                     <td class="text-right" style="font-weight: 800; font-size: 1.25rem; color: var(--primary-color);">
-                        Rp <?php echo number_format($po['total_amount'], 0, ',', '.'); ?>
+                        Rp <?php echo number_format($po['grand_total'], 0, ',', '.'); ?>
                     </td>
                     <td></td>
                 </tr>
