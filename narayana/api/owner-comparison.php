@@ -77,26 +77,52 @@ try {
     
     // Get stats for each business
     $businessStats = [];
+    $hasBranchId = false;
+    
+    // Check once if branch_id column exists
+    try {
+        $columns = $db->getConnection()->query("SHOW COLUMNS FROM cash_book LIKE 'branch_id'")->fetchAll();
+        $hasBranchId = count($columns) > 0;
+    } catch (Exception $e) {
+        $hasBranchId = false;
+    }
+    
     foreach ($businesses as $business) {
-        $stats = $db->fetchOne(
-            "SELECT 
-                COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) as income,
-                COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) as expense,
-                COUNT(CASE WHEN transaction_type = 'income' THEN 1 END) as income_count,
-                COUNT(CASE WHEN transaction_type = 'expense' THEN 1 END) as expense_count
-             FROM cash_book 
-             WHERE branch_id = ? AND $dateFilter",
-            [$business['id']]
-        );
+        if ($hasBranchId) {
+            // Use branch_id if exists
+            $stats = $db->fetchOne(
+                "SELECT 
+                    COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) as income,
+                    COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) as expense,
+                    COUNT(CASE WHEN transaction_type = 'income' THEN 1 END) as income_count,
+                    COUNT(CASE WHEN transaction_type = 'expense' THEN 1 END) as expense_count
+                 FROM cash_book 
+                 WHERE branch_id = ? AND $dateFilter",
+                [$business['id']]
+            );
+        } else {
+            // Fallback: get all data (same for all businesses if branch_id doesn't exist)
+            // This will show same data for all until migration is run
+            $stats = $db->fetchOne(
+                "SELECT 
+                    COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) as income,
+                    COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) as expense,
+                    COUNT(CASE WHEN transaction_type = 'income' THEN 1 END) as income_count,
+                    COUNT(CASE WHEN transaction_type = 'expense' THEN 1 END) as expense_count
+                 FROM cash_book 
+                 WHERE $dateFilter",
+                []
+            );
+        }
         
         $businessStats[] = [
             'id' => $business['id'],
             'name' => $business['business_name'],
-            'income' => (float)$stats['income'],
-            'expense' => (float)$stats['expense'],
-            'net' => (float)$stats['income'] - (float)$stats['expense'],
-            'income_count' => (int)$stats['income_count'],
-            'expense_count' => (int)$stats['expense_count']
+            'income' => (float)($stats['income'] ?? 0),
+            'expense' => (float)($stats['expense'] ?? 0),
+            'net' => (float)($stats['income'] ?? 0) - (float)($stats['expense'] ?? 0),
+            'income_count' => (int)($stats['income_count'] ?? 0),
+            'expense_count' => (int)($stats['expense_count'] ?? 0)
         ];
     }
     
@@ -113,6 +139,7 @@ try {
             'expense' => $totalExpense,
             'net' => $totalIncome - $totalExpense
         ],
+        'has_branch_id' => $hasBranchId,
         'timestamp' => date('Y-m-d H:i:s')
     ]);
     

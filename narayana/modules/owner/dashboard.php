@@ -171,6 +171,48 @@ $logoFile = 'logo-alt.png';
             transform: scale(0.98);
         }
         
+        /* Income Card - Green */
+        .stat-card.income-card {
+            background: linear-gradient(135deg, rgba(236, 253, 245, 0.98) 0%, rgba(209, 250, 229, 0.98) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .stat-card.income-card::before {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+        
+        .stat-card.income-card .stat-label {
+            color: #065f46;
+        }
+        
+        .stat-card.income-card .stat-value {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Expense Card - Red */
+        .stat-card.expense-card {
+            background: linear-gradient(135deg, rgba(254, 242, 242, 0.98) 0%, rgba(254, 226, 226, 0.98) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .stat-card.expense-card::before {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .stat-card.expense-card .stat-label {
+            color: #7f1d1d;
+        }
+        
+        .stat-card.expense-card .stat-value {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
         .stat-label {
             font-size: 0.7rem;
             color: #64748b;
@@ -231,6 +273,39 @@ $logoFile = 'logo-alt.png';
             width: 18px;
             height: 18px;
             color: #6366f1;
+        }
+        
+        /* Responsive Pie Chart Container */
+        .chart-comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .chart-comparison-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .chart-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .chart-box h4 {
+            margin: 0 0 15px 0;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        
+        .chart-box canvas {
+            max-width: 100%;
+            height: auto !important;
         }
         
         .occupancy-bar {
@@ -746,8 +821,8 @@ $logoFile = 'logo-alt.png';
     <div id="comparisonView" class="content-wrapper" style="display: none;">
         <div class="section-card">
             <div class="section-title">
-                <i data-feather="pie-chart" style="width: 20px; height: 20px; color: #4338ca;"></i>
-                <span>Business Comparison</span>
+                <i data-feather="bar-chart-2" style="width: 20px; height: 20px; color: #4338ca;"></i>
+                <span>Business Performance Comparison</span>
             </div>
             <div class="period-selector">
                 <button class="period-btn active" onclick="changeComparisonPeriod('today')" data-period="today">
@@ -760,14 +835,27 @@ $logoFile = 'logo-alt.png';
                     This Year
                 </button>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-                <div>
-                    <h4 style="margin: 0 0 15px 0; font-size: 0.875rem; color: #6b7280;">Income by Business</h4>
-                    <canvas id="incomeComparisonChart" style="max-height: 300px;"></canvas>
+            
+            <!-- Modern Bar Chart -->
+            <div style="margin-top: 20px; padding: 1.5rem; background: linear-gradient(135deg, rgba(249, 250, 251, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%); border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+                <div style="position: relative; height: 350px;">
+                    <canvas id="comparisonBarChart"></canvas>
                 </div>
-                <div>
-                    <h4 style="margin: 0 0 15px 0; font-size: 0.875rem; color: #6b7280;">Expense by Business</h4>
-                    <canvas id="expenseComparisonChart" style="max-height: 300px;"></canvas>
+                
+                <!-- Legend Modern -->
+                <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);"></div>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: #065f46;">Income</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"></div>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: #7f1d1d;">Expense</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);"></div>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: #312e81;">Net Profit</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -804,7 +892,7 @@ $logoFile = 'logo-alt.png';
         
         <!-- Stats Grid -->
         <div class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card income-card">
                 <div class="stat-label">
                     <i data-feather="trending-up" style="width: 14px; height: 14px;"></i>
                     Today's Income
@@ -813,7 +901,7 @@ $logoFile = 'logo-alt.png';
                 <div class="stat-change" style="color: #6b7280;" id="todayIncomeCount">0 transactions</div>
             </div>
             
-            <div class="stat-card">
+            <div class="stat-card expense-card">
                 <div class="stat-label">
                     <i data-feather="trending-down" style="width: 14px; height: 14px;"></i>
                     Today's Expense
@@ -822,7 +910,7 @@ $logoFile = 'logo-alt.png';
                 <div class="stat-change" style="color: #6b7280;" id="todayExpenseCount">0 transactions</div>
             </div>
             
-            <div class="stat-card">
+            <div class="stat-card income-card">
                 <div class="stat-label">
                     <i data-feather="dollar-sign" style="width: 14px; height: 14px;"></i>
                     Monthly Income
@@ -831,7 +919,7 @@ $logoFile = 'logo-alt.png';
                 <div class="stat-change" style="color: #6b7280;" id="monthIncomeChange">0%</div>
             </div>
             
-            <div class="stat-card">
+            <div class="stat-card expense-card">
                 <div class="stat-label">
                     <i data-feather="shopping-cart" style="width: 14px; height: 14px;"></i>
                     Monthly Expense
@@ -913,8 +1001,7 @@ $logoFile = 'logo-alt.png';
         let weeklyChart = null;
         let currentPeriod = '7days';
         let currentComparisonPeriod = 'today';
-        let incomeComparisonChart = null;
-        let expenseComparisonChart = null;
+        let comparisonBarChart = null;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1095,14 +1182,14 @@ $logoFile = 'logo-alt.png';
                 const response = await fetch(`../../api/owner-stats.php?branch_id=${branchId}`);
                 const data = await response.json();
                 
-                if (data.success) {
+                if (data.success && data.stats) {
                     const stats = data.stats;
                     
                     // Calculate metrics
-                    const todayIncome = parseFloat(stats.today_income) || 0;
-                    const todayExpense = parseFloat(stats.today_expense) || 0;
-                    const monthIncome = parseFloat(stats.month_income) || 0;
-                    const monthExpense = parseFloat(stats.month_expense) || 0;
+                    const todayIncome = parseFloat(stats.today_income || 0);
+                    const todayExpense = parseFloat(stats.today_expense || 0);
+                    const monthIncome = parseFloat(stats.month_income || 0);
+                    const monthExpense = parseFloat(stats.month_expense || 0);
                     
                     // Profit Margin (current month)
                     const profitMargin = monthIncome > 0 
@@ -1475,77 +1562,178 @@ $logoFile = 'logo-alt.png';
             const labels = businesses.map(b => b.name);
             const incomeData = businesses.map(b => b.income);
             const expenseData = businesses.map(b => b.expense);
+            const netData = businesses.map(b => b.net);
             
-            // Destroy existing charts
-            if (incomeComparisonChart) incomeComparisonChart.destroy();
-            if (expenseComparisonChart) expenseComparisonChart.destroy();
+            console.log('=== Rendering Comparison Chart ===');
+            console.log('Has branch_id:', data.has_branch_id);
+            console.log('Businesses:', businesses);
+            console.log('Labels:', labels);
+            console.log('Income Data:', incomeData);
+            console.log('Expense Data:', expenseData);
+            console.log('Net Data:', netData);
             
-            // Income Chart (Pie)
-            const incomeCtx = document.getElementById('incomeComparisonChart').getContext('2d');
-            incomeComparisonChart = new Chart(incomeCtx, {
-                type: 'pie',
+            // Destroy existing chart
+            if (comparisonBarChart) {
+                comparisonBarChart.destroy();
+            }
+            
+            // Modern Line Chart (Trading Style)
+            const ctx = document.getElementById('comparisonBarChart').getContext('2d');
+            comparisonBarChart = new Chart(ctx, {
+                type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        data: incomeData,
-                        backgroundColor: [
-                            '#4338ca', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
-                        ]
-                    }]
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: incomeData,
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+                                gradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+                                return gradient;
+                            },
+                            borderColor: '#10b981',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: '#10b981',
+                            pointHoverBorderWidth: 3,
+                        },
+                        {
+                            label: 'Expense',
+                            data: expenseData,
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                                gradient.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
+                                gradient.addColorStop(1, 'rgba(239, 68, 68, 0.01)');
+                                return gradient;
+                            },
+                            borderColor: '#ef4444',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: '#ef4444',
+                            pointHoverBorderWidth: 3,
+                        },
+                        {
+                            label: 'Net Profit',
+                            data: netData,
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
+                                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.01)');
+                                return gradient;
+                            },
+                            borderColor: '#6366f1',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: '#6366f1',
+                            pointHoverBorderWidth: 3,
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     plugins: {
                         legend: {
-                            position: 'bottom',
-                            labels: { font: { size: 10 }, padding: 10 }
+                            display: false // Custom legend below
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#e2e8f0',
+                            padding: 16,
+                            cornerRadius: 12,
+                            displayColors: true,
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            boxPadding: 6,
+                            borderColor: 'rgba(148, 163, 184, 0.2)',
+                            borderWidth: 1,
+                            titleFont: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                size: 12,
+                                weight: '500'
+                            },
                             callbacks: {
                                 label: function(context) {
-                                    const label = context.label || '';
-                                    const value = formatRupiah(context.parsed);
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                    const label = context.dataset.label || '';
+                                    const value = formatRupiah(context.parsed.y);
+                                    return ' ' + label + ': ' + value;
                                 }
                             }
                         }
-                    }
-                }
-            });
-            
-            // Expense Chart (Pie)
-            const expenseCtx = document.getElementById('expenseComparisonChart').getContext('2d');
-            expenseComparisonChart = new Chart(expenseCtx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: expenseData,
-                        backgroundColor: [
-                            '#ef4444', '#f59e0b', '#10b981', '#4338ca', '#8b5cf6', '#ec4899'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { font: { size: 10 }, padding: 10 }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: window.innerWidth < 768 ? 8 : 9,
+                                    weight: '500'
+                                },
+                                color: '#64748b',
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: false
+                            }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = formatRupiah(context.parsed);
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                    return label + ': ' + value + ' (' + percentage + '%)';
-                                }
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.08)',
+                                drawBorder: false,
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10,
+                                    weight: '500'
+                                },
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return 'Rp ' + (value / 1000000).toFixed(1) + ' Jt';
+                                    } else if (value >= 1000) {
+                                        return 'Rp ' + (value / 1000).toFixed(0) + ' Rb';
+                                    }
+                                    return 'Rp ' + value;
+                                },
+                                padding: 10
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     }
