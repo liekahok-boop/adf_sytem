@@ -7,10 +7,41 @@
  * Generate elegant print header with logo and company info
  */
 function printHeader($db, $displayCompanyName, $businessIcon, $businessType, $title, $period = '') {
+    // Prioritize business-specific invoice_logo, fallback to global invoice_logo, then company_logo
     $logoPath = null;
-    $logoResult = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'");
-    if ($logoResult && !empty($logoResult['setting_value'])) {
-        $logoPath = $logoResult['setting_value'];
+    $businessId = ACTIVE_BUSINESS_ID ?? '';
+    
+    // Try business-specific invoice logo first
+    if ($businessId) {
+        $businessInvoiceLogoResult = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = :key", 
+            ['key' => 'invoice_logo_' . $businessId]);
+        if ($businessInvoiceLogoResult && !empty($businessInvoiceLogoResult['setting_value'])) {
+            $logoPath = $businessInvoiceLogoResult['setting_value'];
+        }
+    }
+    
+    // Fallback to global invoice_logo
+    if (!$logoPath) {
+        $invoiceLogoResult = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'invoice_logo'");
+        if ($invoiceLogoResult && !empty($invoiceLogoResult['setting_value'])) {
+            $logoPath = $invoiceLogoResult['setting_value'];
+        }
+    }
+    
+    // Fallback to company_logo
+    if (!$logoPath) {
+        $companyLogoResult = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'");
+        if ($companyLogoResult && !empty($companyLogoResult['setting_value'])) {
+            $logoPath = $companyLogoResult['setting_value'];
+        }
+    }
+    
+    // Convert relative path to absolute if needed
+    if ($logoPath && strpos($logoPath, 'http') !== 0) {
+        $testPath = __DIR__ . '/../' . ltrim($logoPath, '/');
+        if (file_exists($testPath)) {
+            $logoPath = $testPath;
+        }
     }
     
     ob_start();

@@ -15,6 +15,10 @@ $pageTitle = 'Laporan Per Divisi';
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d');
 
+// Get company info for header
+require_once '../../includes/report_helper.php';
+$company = getCompanyInfo();
+
 $params = ['start_date' => $start_date, 'end_date' => $end_date];
 
 // Get all divisions with summary
@@ -48,9 +52,94 @@ foreach ($divisionSummary as $div) {
 }
 
 include '../../includes/header.php';
+
+// Convert logo path to browser-accessible URL
+$displayLogo = $company['invoice_logo'] ?? $company['logo'];
+$absoluteLogo = null;
+if ($displayLogo) {
+    if (strpos($displayLogo, 'http') === 0) {
+        // Already a URL path
+        $absoluteLogo = $displayLogo;
+    } else {
+        // Convert filename to URL path for browser display
+        // Logo filenames are stored in DB, need to build full URL path
+        $logoFilename = basename($displayLogo);
+        $absoluteLogo = BASE_URL . '/uploads/logos/' . $logoFilename;
+    }
+}
 ?>
 
-<!-- Filter Section -->
+<!-- Print Content (Hidden from Screen, Visible in Print/PDF) -->
+<div id="printContent" style="position: absolute; left: -9999px; top: -9999px; opacity: 0; width: 210mm; min-height: 297mm; margin: 0; padding: 8mm; background: white; color: #000;">
+    <!-- Report Header -->
+    <?php echo generateReportHeader('LAPORAN PER DIVISI', '', date('d M Y', strtotime($start_date)) . ' - ' . date('d M Y', strtotime($end_date)), $absoluteLogo); ?>
+    
+    <!-- Summary Cards for Print -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.3rem; margin-bottom: 0.6rem;">
+        <div style="padding: 0.4rem 0.5rem; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            <div style="font-size: 7px; color: #666; margin-bottom: 0.2rem;">Total Pemasukan</div>
+            <div style="font-size: 13px; font-weight: bold; color: #10b981;">Rp <?php echo number_format($grandIncome, 0, ',', '.'); ?></div>
+        </div>
+        <div style="padding: 0.4rem 0.5rem; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            <div style="font-size: 7px; color: #666; margin-bottom: 0.2rem;">Total Pengeluaran</div>
+            <div style="font-size: 13px; font-weight: bold; color: #ef4444;">Rp <?php echo number_format($grandExpense, 0, ',', '.'); ?></div>
+        </div>
+        <div style="padding: 0.4rem 0.5rem; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            <div style="font-size: 7px; color: #666; margin-bottom: 0.2rem;">Saldo Bersih</div>
+            <div style="font-size: 13px; font-weight: bold; color: <?php echo $grandNet >= 0 ? '#10b981' : '#ef4444'; ?>;">Rp <?php echo number_format($grandNet, 0, ',', '.'); ?></div>
+        </div>
+        <div style="padding: 0.4rem 0.5rem; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            <div style="font-size: 7px; color: #666; margin-bottom: 0.2rem;">Total Divisi</div>
+            <div style="font-size: 13px; font-weight: bold; color: #333;"><?php echo count($divisionSummary); ?></div>
+        </div>
+    </div>
+
+    <!-- Division Summary Table for Print -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 0.6rem; font-size: 8px;">
+        <thead>
+            <tr style="background: #f5f5f5;">
+                <th style="border: 1px solid #ddd; padding: 3px 4px; text-align: left; font-weight: bold;">No</th>
+                <th style="border: 1px solid #ddd; padding: 3px 4px; text-align: left; font-weight: bold;">Nama Divisi</th>
+                <th style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; font-weight: bold;">Pemasukan</th>
+                <th style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; font-weight: bold;">Pengeluaran</th>
+                <th style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; font-weight: bold;">Saldo Bersih</th>
+                <th style="border: 1px solid #ddd; padding: 3px 4px; text-align: center; font-weight: bold;">Trx</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php 
+            $no = 1;
+            foreach ($divisionSummary as $div): 
+            ?>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: center;"><?php echo $no++; ?></td>
+                    <td style="border: 1px solid #ddd; padding: 3px 4px;"><?php echo htmlspecialchars($div['division_name']); ?></td>
+                    <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; color: #10b981; font-weight: 600;">Rp <?php echo number_format($div['total_income'], 0, ',', '.'); ?></td>
+                    <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; color: #ef4444; font-weight: 600;">Rp <?php echo number_format($div['total_expense'], 0, ',', '.'); ?></td>
+                    <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; color: <?php echo $div['net_balance'] >= 0 ? '#10b981' : '#ef4444'; ?>; font-weight: 700;">Rp <?php echo number_format($div['net_balance'], 0, ',', '.'); ?></td>
+                    <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: center;"><?php echo $div['transaction_count']; ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+        <tfoot>
+            <tr style="background: #f5f5f5; font-weight: bold;">
+                <td colspan="2" style="border: 1px solid #ddd; padding: 3px 4px;">TOTAL</td>
+                <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; color: #10b981;">Rp <?php echo number_format($grandIncome, 0, ',', '.'); ?></td>
+                <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; color: #ef4444;">Rp <?php echo number_format($grandExpense, 0, ',', '.'); ?></td>
+                <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: right; color: <?php echo $grandNet >= 0 ? '#10b981' : '#ef4444'; ?>;">Rp <?php echo number_format($grandNet, 0, ',', '.'); ?></td>
+                <td style="border: 1px solid #ddd; padding: 3px 4px; text-align: center;"><?php echo $grandTransactions; ?></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Signature Section -->
+    <?php echo generateSignatureSection(); ?>
+    
+    <!-- Footer -->
+    <?php echo generateReportFooter(); ?>
+</div>
+
+<!-- Main Content (Screen View)-->
 <div class="card" style="margin-bottom: 1.25rem;">
     <form method="GET" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
         <div class="form-group" style="margin: 0;">
@@ -331,13 +420,224 @@ include '../../includes/header.php';
     </div>
 </div>
 
+<style>
+    @media print {
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            width: 210mm;
+            height: 297mm;
+            background: white !important;
+        }
+        
+        main, .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+        }
+        
+        #printContent {
+            position: static !important;
+            left: auto !important;
+            top: auto !important;
+            opacity: 1 !important;
+            display: block !important;
+        }
+        
+        /* Hide screen-only elements */
+        .sidebar, .top-bar, .breadcrumb, .card, footer, nav, .form-control, .btn {
+            display: none !important;
+        }
+        
+        /* Print only the printContent */
+        #printContent {
+            display: block !important;
+        }
+        
+        #printContent table {
+            page-break-inside: avoid;
+        }
+        
+        #printContent tr {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
 <script>
     feather.replace();
     
     function exportToPDF() {
-        const params = new URLSearchParams(window.location.search);
-        params.set('export', 'pdf');
-        window.open('division-pdf.php?' + params.toString(), '_blank');
+        const element = document.getElementById('printContent');
+        if (!element) {
+            alert('Konten laporan tidak ditemukan!');
+            return;
+        }
+        showPDFPreview(element);
+    }
+
+    function showPDFPreview(element) {
+        const previewModal = document.createElement('div');
+        previewModal.id = 'pdfPreviewModal';
+        previewModal.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center;
+            justify-content: center; z-index: 9999; padding: 20px;
+        `;
+        previewModal.innerHTML = `
+            <div style="background: white; border-radius: 8px; max-width: 800px; width: 100%;
+                max-height: 90vh; display: flex; flex-direction: column;">
+                <div style="padding: 1.5rem; border-bottom: 1px solid #ddd; display: flex;
+                    justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #333;">Preview PDF</h3>
+                    <button onclick="closePDFPreview()" style="border: none; background: none;
+                        font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+                </div>
+                <div id="previewContent" style="flex: 1; overflow-y: auto; padding: 1.5rem;
+                    background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+                    <div style="color: #999; font-size: 14px;">Generating preview...</div>
+                </div>
+                <div style="padding: 1.5rem; border-top: 1px solid #ddd; display: flex;
+                    gap: 1rem; justify-content: flex-end;">
+                    <button onclick="closePDFPreview()" style="padding: 0.75rem 1.5rem;
+                        border: 1px solid #ddd; background: white; color: #666; border-radius: 4px;
+                        cursor: pointer; font-weight: 500;">Cancel</button>
+                    <button onclick="confirmPDFDownload()" style="padding: 0.75rem 1.5rem;
+                        border: none; background: #dc3545; color: white; border-radius: 4px;
+                        cursor: pointer; font-weight: 500;">Download PDF</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(previewModal);
+        renderPreview(element);
+    }
+
+    function renderPreview(element) {
+        if (typeof html2canvas === 'undefined') {
+            setTimeout(() => { renderPreview(element); }, 100);
+            return;
+        }
+        
+        const previewContent = document.getElementById('previewContent');
+        if (previewContent) previewContent.innerHTML = '<div style="color: #999;">Rendering PDF...</div>';
+        
+        // Clone and make visible for rendering
+        const clone = element.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.left = '0';
+        clone.style.top = '0';
+        clone.style.width = '210mm';
+        clone.style.height = 'auto';
+        clone.style.display = 'block';
+        clone.style.opacity = '1';
+        clone.style.zIndex = '-999';
+        clone.style.visibility = 'hidden';
+        
+        document.body.appendChild(clone);
+        
+        // Wait for reflow
+        setTimeout(() => {
+            html2canvas(clone, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                windowHeight: clone.scrollHeight,
+                windowWidth: clone.scrollWidth,
+                onclone: (clonedDoc) => {
+                    // Ensure visibility in cloned doc
+                    const content = clonedDoc.body.querySelector('#printContent') || clonedDoc.body.firstChild;
+                    if (content) {
+                        content.style.visibility = 'visible';
+                        content.style.opacity = '1';
+                    }
+                }
+            }).then(canvas => {
+                document.body.removeChild(clone);
+                
+                const previewContent = document.getElementById('previewContent');
+                if (!previewContent) return;
+                
+                previewContent.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/jpeg', 0.95);
+                img.style.cssText = 'max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;';
+                previewContent.appendChild(img);
+                
+                window.pdfPreviewCanvas = canvas;
+            }).catch(err => {
+                document.body.removeChild(clone);
+                
+                const previewContent = document.getElementById('previewContent');
+                if (previewContent) {
+                    previewContent.innerHTML = '<div style="color: #d32f2f; font-weight: 500;">Error: ' + err.message + '</div>';
+                }
+            });
+        }, 100);
+    }
+
+    function confirmPDFDownload() {
+        if (!window.pdfPreviewCanvas) {
+            alert('Preview tidak siap. Silakan coba lagi.');
+            return;
+        }
+        
+        // Check if jsPDF is available (it's in window.jsPDF from html2pdf bundle)
+        if (typeof window.jsPDF === 'undefined' && typeof jsPDF === 'undefined') {
+            // Fallback: wait for library and retry
+            setTimeout(() => { confirmPDFDownload(); }, 500);
+            return;
+        }
+        
+        const filename = 'Laporan-PerDivisi-<?php echo date("Y-m-d"); ?>.pdf';
+        
+        try {
+            const canvas = window.pdfPreviewCanvas;
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const PDF = window.jsPDF || jsPDF;
+            const doc = new PDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = 0;
+            
+            while (heightLeft >= 0) {
+                doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                if (heightLeft > 0) {
+                    doc.addPage();
+                    position = heightLeft - imgHeight;
+                }
+            }
+            
+            doc.save(filename);
+            closePDFPreview();
+        } catch (e) {
+            console.error('PDF save error:', e);
+            alert('Gagal save PDF. Error: ' + e.message);
+        }
+    }
+
+    function closePDFPreview() {
+        const modal = document.getElementById('pdfPreviewModal');
+        if (modal) {
+            modal.remove();
+        }
+        window.pdfPreviewCanvas = null;
     }
 </script>
 

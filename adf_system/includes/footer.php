@@ -69,6 +69,10 @@
        });
    </script>
    
+   <!-- html2pdf.js Library for PDF Export -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+   
    <!-- Additional JavaScript -->
    <?php if (isset($additionalJS)): ?>
        <?php foreach ($additionalJS as $js): ?>
@@ -82,5 +86,5 @@
            <?php echo $inlineScript; ?>
        </script>
    <?php endif; ?>
-/body>
-/html>
+</body>
+</html>

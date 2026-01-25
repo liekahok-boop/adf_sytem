@@ -11,14 +11,40 @@ require_once __DIR__ . '/../config/database.php';
  */
 function getCompanyInfo() {
     $db = Database::getInstance();
+    $businessId = ACTIVE_BUSINESS_ID ?? '';
+    
+    $companyName = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_name'");
+    $companyLogo = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'");
+    
+    // Try business-specific invoice logo first
+    $invoiceLogo = null;
+    if ($businessId) {
+        $businessInvoiceLogo = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = :key", 
+            ['key' => 'invoice_logo_' . $businessId]);
+        if ($businessInvoiceLogo && isset($businessInvoiceLogo['setting_value'])) {
+            $invoiceLogo = $businessInvoiceLogo['setting_value'];
+        }
+    }
+    
+    // Fallback to global invoice_logo
+    if (!$invoiceLogo) {
+        $globalInvoiceLogo = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'invoice_logo'");
+        if ($globalInvoiceLogo && isset($globalInvoiceLogo['setting_value'])) {
+            $invoiceLogo = $globalInvoiceLogo['setting_value'];
+        }
+    }
+    
+    $companyAddress = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_address'");
+    $companyPhone = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_phone'");
+    $companyEmail = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_email'");
     
     return [
-        'name' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_name'")['setting_value'] ?? BUSINESS_NAME,
-        'logo' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_logo'")['setting_value'] ?? null,
-        'invoice_logo' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'invoice_logo'")['setting_value'] ?? null,
-        'address' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_address'")['setting_value'] ?? '',
-        'phone' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_phone'")['setting_value'] ?? '',
-        'email' => $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = 'company_email'")['setting_value'] ?? '',
+        'name' => ($companyName && isset($companyName['setting_value'])) ? $companyName['setting_value'] : BUSINESS_NAME,
+        'logo' => ($companyLogo && isset($companyLogo['setting_value'])) ? $companyLogo['setting_value'] : null,
+        'invoice_logo' => $invoiceLogo,
+        'address' => ($companyAddress && isset($companyAddress['setting_value'])) ? $companyAddress['setting_value'] : '',
+        'phone' => ($companyPhone && isset($companyPhone['setting_value'])) ? $companyPhone['setting_value'] : '',
+        'email' => ($companyEmail && isset($companyEmail['setting_value'])) ? $companyEmail['setting_value'] : '',
         'icon' => BUSINESS_ICON ?? '🏢',
         'color' => BUSINESS_COLOR ?? '#3b82f6'
     ];
@@ -27,44 +53,47 @@ function getCompanyInfo() {
 /**
  * Generate Report Header HTML with Logo and Company Info
  */
-function generateReportHeader($title, $subtitle = '', $dateRange = '') {
+function generateReportHeader($title, $subtitle = '', $dateRange = '', $logoPath = null) {
     $company = getCompanyInfo();
     
-    // Determine logo to display
-    $displayLogo = $company['invoice_logo'] ?? $company['logo'];
+    // Determine logo to display - use provided path or default
+    $displayLogo = $logoPath ?? ($company['invoice_logo'] ?? $company['logo']);
     $logoHtml = '';
     
-    if ($displayLogo && file_exists($displayLogo)) {
-        $logoHtml = '<img src="' . $displayLogo . '" alt="Logo" style="width: 80px; height: 80px; object-fit: contain;">';
+    // Logo should be a browser-accessible URL, not a filesystem path
+    if ($displayLogo && (strpos($displayLogo, 'http') === 0 || strpos($displayLogo, '/') === 0)) {
+        // It's already a URL or absolute web path - use as-is
+        $logoHtml = '<img src="' . htmlspecialchars($displayLogo) . '" alt="Logo" style="width: 100px; height: 100px; object-fit: contain;">';
     } else {
-        $logoHtml = '<div style="width: 80px; height: 80px; font-size: 48px; display: flex; align-items: center; justify-content: center;">' . $company['icon'] . '</div>';
+        // Fallback to icon emoji
+        $logoHtml = '<div style="width: 100px; height: 100px; font-size: 56px; display: flex; align-items: center; justify-content: center;">' . $company['icon'] . '</div>';
     }
     
     $html = '
-    <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 3px solid ' . $company['color'] . ';">
+    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid ' . $company['color'] . ';">
         <div style="flex-shrink: 0;">
             ' . $logoHtml . '
         </div>
         <div style="flex: 1;">
-            <div style="font-size: 28px; font-weight: 900; color: ' . $company['color'] . '; margin-bottom: 0.25rem; letter-spacing: -0.5px;">
+            <div style="font-size: 20px; font-weight: 800; color: ' . $company['color'] . '; margin-bottom: 0.15rem; letter-spacing: -0.3px;">
                 ' . htmlspecialchars($company['name']) . '
             </div>
-            <div style="font-size: 11px; color: #666; line-height: 1.6;">
+            <div style="font-size: 9px; color: #666; line-height: 1.4;">
                 ' . ($company['address'] ? htmlspecialchars($company['address']) . '<br>' : '') . '
-                ' . ($company['phone'] ? 'Tel: ' . htmlspecialchars($company['phone']) . '<br>' : '') . '
+                ' . ($company['phone'] ? 'Tel: ' . htmlspecialchars($company['phone']) . ' ' : '') . '
                 ' . ($company['email'] ? 'Email: ' . htmlspecialchars($company['email']) : '') . '
             </div>
         </div>
-        <div style="text-align: right; min-width: 200px;">
-            <div style="font-size: 12px; color: #666;">
-                <div style="margin-bottom: 0.5rem;">
+        <div style="text-align: right; min-width: 160px;">
+            <div style="font-size: 10px; color: #666;">
+                <div style="margin-bottom: 0.3rem;">
                     <strong>Laporan:</strong><br>
-                    <span style="font-size: 18px; font-weight: 700; color: ' . $company['color'] . '; display: block;">
+                    <span style="font-size: 14px; font-weight: 700; color: ' . $company['color'] . '; display: block;">
                         ' . htmlspecialchars($title) . '
                     </span>
                 </div>
-                ' . ($subtitle ? '<div style="color: #999; font-size: 11px; margin-bottom: 0.5rem;">' . htmlspecialchars($subtitle) . '</div>' : '') . '
-                ' . ($dateRange ? '<div style="color: #666; font-weight: 600;">' . htmlspecialchars($dateRange) . '</div>' : '') . '
+                ' . ($subtitle ? '<div style="color: #999; font-size: 9px; margin-bottom: 0.3rem;">' . htmlspecialchars($subtitle) . '</div>' : '') . '
+                ' . ($dateRange ? '<div style="color: #666; font-weight: 600; font-size: 9px;">' . htmlspecialchars($dateRange) . '</div>' : '') . '
             </div>
         </div>
     </div>
@@ -78,11 +107,11 @@ function generateReportHeader($title, $subtitle = '', $dateRange = '') {
  */
 function generateSummaryCard($label, $value, $color = '#10b981', $icon = '') {
     return '
-    <div style="background: linear-gradient(135deg, ' . $color . '10 0%, ' . $color . '05 100%); border: 2px solid ' . $color . '; border-radius: 8px; padding: 1.25rem; text-align: center; page-break-inside: avoid;">
-        <div style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 0.5rem;">
+    <div style="background: linear-gradient(135deg, ' . $color . '10 0%, ' . $color . '05 100%); border: 1px solid ' . $color . '; border-radius: 4px; padding: 0.4rem 0.5rem; text-align: center; page-break-inside: avoid;">
+        <div style="font-size: 7px; color: #666; text-transform: uppercase; font-weight: 600; letter-spacing: 0.2px; margin-bottom: 0.15rem;">
             ' . $icon . ' ' . htmlspecialchars($label) . '
         </div>
-        <div style="font-size: 22px; font-weight: 900; color: ' . $color . '; line-height: 1.2;">
+        <div style="font-size: 13px; font-weight: 800; color: ' . $color . '; line-height: 1.1;">
             ' . htmlspecialchars($value) . '
         </div>
     </div>
@@ -96,12 +125,8 @@ function generateReportFooter() {
     $company = getCompanyInfo();
     
     return '
-    <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #999;">
-        <div style="margin-bottom: 0.5rem;">
-            <strong>' . htmlspecialchars($company['name']) . '</strong>
-        </div>
-        <div>Dicetak pada: ' . date('d M Y H:i:s') . '</div>
-        <div style="margin-top: 0.5rem; font-style: italic;">Laporan ini adalah dokumen resmi dari ' . htmlspecialchars($company['name']) . '</div>
+    <div style="margin-top: 0.1rem; padding-top: 0.08rem; border-top: 0.8px solid #ddd; text-align: center; font-size: 5px; color: #999;">
+        <div>' . htmlspecialchars($company['name']) . '</div>
     </div>
     ';
 }
@@ -164,19 +189,15 @@ function generateSignatureSection() {
     $company = getCompanyInfo();
     
     return '
-    <div style="margin-top: 3rem; page-break-inside: avoid;">
-        <table style="width: 100%; font-size: 11px;">
+    <div style="margin-top: 0.2rem; page-break-inside: avoid;">
+        <table style="width: 100%; font-size: 6px;">
             <tr>
                 <td style="width: 33%; text-align: center;">
-                    <div style="border-top: 1px solid #000; padding-top: 1rem; min-height: 60px;">
-                        <div style="margin-top: 0.5rem;">Pembuat Laporan</div>
-                    </div>
+                    <div style="border-top: 0.8px solid #000; padding-top: 0.1rem; min-height: 20px;"></div>
                 </td>
                 <td style="width: 34%;"></td>
                 <td style="width: 33%; text-align: center;">
-                    <div style="border-top: 1px solid #000; padding-top: 1rem; min-height: 60px;">
-                        <div style="margin-top: 0.5rem;">Persetujuan</div>
-                    </div>
+                    <div style="border-top: 0.8px solid #000; padding-top: 0.1rem; min-height: 20px;"></div>
                 </td>
             </tr>
         </table>
