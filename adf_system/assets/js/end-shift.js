@@ -8,23 +8,41 @@ async function initiateEndShift() {
         // Show loading
         showLoadingModal('Mengambil data laporan hari ini...');
         
-        // Fetch end shift data
+        // Debug: Test API first
+        console.log('Testing API connectivity...');
+        const testResponse = await fetch('<?php echo BASE_URL; ?>/api/test-api.php');
+        const testResult = await testResponse.json();
+        console.log('API Test Result:', testResult);
+        
+        // Now fetch actual end shift data
+        console.log('Fetching End Shift data...');
         const response = await fetch('<?php echo BASE_URL; ?>/api/end-shift.php', {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
         });
 
-        const result = await response.json();
+        console.log('Response status:', response.status);
+        const text = await response.text();
+        console.log('Response text:', text);
+        
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            throw new Error('Invalid response from server: ' + text.substring(0, 200));
+        }
         
         // Close loading modal
         closeLoadingModal();
 
         if (!response.ok || result.status !== 'success') {
             const errorMsg = result.message || 'Gagal mengambil data laporan';
-            const errorDetail = result.debug ? '\n\nDetail: ' + JSON.stringify(result.debug) : '';
-            throw new Error(errorMsg + errorDetail);
+            throw new Error(errorMsg);
         }
 
         // Show end shift report modal
@@ -35,7 +53,7 @@ async function initiateEndShift() {
         
         // Show detailed error
         const errorMessage = error.message || 'Unknown error occurred';
-        alert('❌ Error: ' + errorMessage + '\n\nTry:\n1. Refresh page (F5)\n2. Check browser console (F12)\n3. Contact admin');
+        alert('❌ Error: ' + errorMessage + '\n\nSolutions:\n1. Refresh page (F5)\n2. Check console (F12)\n3. Ensure you are logged in');
         console.error('End Shift Error:', error);
     }
 }

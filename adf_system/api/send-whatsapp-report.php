@@ -3,18 +3,61 @@
  * Send Daily Report to WhatsApp (GM/Admin)
  */
 
-define('APP_ACCESS', true);
-require_once '../config/config.php';
-require_once '../config/database.php';
-require_once '../includes/auth.php';
-
+// Set header first
 header('Content-Type: application/json');
 
-$auth = new Auth();
-$auth->requireLogin();
+define('APP_ACCESS', true);
+
+// Load config files
+try {
+    require_once '../config/config.php';
+    require_once '../config/database.php';
+    require_once '../includes/auth.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Configuration error: ' . $e->getMessage()
+    ]);
+    exit;
+}
+
+// Check authentication
+try {
+    if (!isset($_SESSION)) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Unauthorized'
+        ]);
+        exit;
+    }
+    
+    $auth = new Auth();
+    $currentUser = $auth->getCurrentUser();
+    
+    if (!$currentUser) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Invalid session'
+        ]);
+        exit;
+    }
+} catch (Exception $e) {
+    http_response_code(401);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Authentication error'
+    ]);
+    exit;
+}
 
 $db = Database::getInstance();
-$currentUser = $auth->getCurrentUser();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

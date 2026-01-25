@@ -3,22 +3,78 @@
  * END SHIFT - Generate Daily Report, PO Data, and WhatsApp Integration
  */
 
-define('APP_ACCESS', true);
-require_once '../config/config.php';
-require_once '../config/database.php';
-require_once '../includes/auth.php';
-require_once '../includes/functions.php';
-
+// Set header first
 header('Content-Type: application/json');
 
-$auth = new Auth();
-$auth->requireLogin();
+define('APP_ACCESS', true);
+
+// Try to load config files safely
+try {
+    if (!file_exists('../config/config.php')) {
+        throw new Exception('Config file not found');
+    }
+    require_once '../config/config.php';
+    
+    if (!file_exists('../config/database.php')) {
+        throw new Exception('Database config not found');
+    }
+    require_once '../config/database.php';
+    
+    if (!file_exists('../includes/auth.php')) {
+        throw new Exception('Auth file not found');
+    }
+    require_once '../includes/auth.php';
+    
+    if (!file_exists('../includes/functions.php')) {
+        throw new Exception('Functions file not found');
+    }
+    require_once '../includes/functions.php';
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Configuration error: ' . $e->getMessage()
+    ]);
+    exit;
+}
+
+// Check authentication
+try {
+    if (!isset($_SESSION)) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Unauthorized - Please login first'
+        ]);
+        exit;
+    }
+    
+    $auth = new Auth();
+    $currentUser = $auth->getCurrentUser();
+    
+    if (!$currentUser) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Invalid session'
+        ]);
+        exit;
+    }
+} catch (Exception $e) {
+    http_response_code(401);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Authentication error: ' . $e->getMessage()
+    ]);
+    exit;
+}
 
 $db = Database::getInstance();
-$currentUser = $auth->getCurrentUser();
-$today = date('Y-m-d');
-
-try {
+$today = date('Y-m-d');try {
     // Get today's transactions
     $transactions = [];
     try {
