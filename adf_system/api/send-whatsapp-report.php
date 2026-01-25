@@ -1,144 +1,89 @@
 <?php
 /**
- * Send Daily Report to WhatsApp (GM/Admin)
+ * SEND WHATSAPP REPORT API - STANDALONE
+ * Generates WhatsApp message and returns URL for Web app
  */
 
-// Set header first
-header('Content-Type: application/json');
+// Prevent output buffering issues
+ob_start();
 
-define('APP_ACCESS', true);
+// Set JSON header IMMEDIATELY
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
 
-// Load config files
+// Clear and start fresh buffer
+ob_end_clean();
+ob_start();
+
+$response = array('status' => 'error', 'message' => 'Unknown error');
+
 try {
-    require_once '../config/config.php';
-    require_once '../config/database.php';
-    require_once '../includes/auth.php';
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Configuration error: ' . $e->getMessage()
-    ]);
-    exit;
-}
-
-// Check authentication
-try {
-    if (!isset($_SESSION)) {
+    // Start session if needed
+    if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
+    // Check authentication
     if (!isset($_SESSION['user_id'])) {
         http_response_code(401);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Unauthorized'
-        ]);
-        exit;
+        throw new Exception('Unauthorized');
     }
     
-    $auth = new Auth();
-    $currentUser = $auth->getCurrentUser();
-    
-    if (!$currentUser) {
-        http_response_code(401);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Invalid session'
-        ]);
-        exit;
-    }
-} catch (Exception $e) {
-    http_response_code(401);
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Authentication error'
-    ]);
-    exit;
-}
-
-$db = Database::getInstance();
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
-    exit;
-}
-
-try {
+    // Get request data
     $data = json_decode(file_get_contents('php://input'), true);
-    
-    $totalIncome = $data['total_income'] ?? 0;
-    $totalExpense = $data['total_expense'] ?? 0;
-    $netBalance = $data['net_balance'] ?? 0;
-    $userName = $data['user_name'] ?? 'User';
-    $transactionCount = $data['transaction_count'] ?? 0;
-    $poCount = $data['po_count'] ?? 0;
-    $businessName = $data['business_name'] ?? 'Narayana';
-    $adminPhone = $data['admin_phone'] ?? '';
-    
-    // Format currency
-    $formattedIncome = 'Rp ' . number_format($totalIncome, 0, ',', '.');
-    $formattedExpense = 'Rp ' . number_format($totalExpense, 0, ',', '.');
-    $formattedBalance = 'Rp ' . number_format($netBalance, 0, ',', '.');
-    
-    // Build WhatsApp message
-    $message = "*📊 LAPORAN END SHIFT - " . $businessName . "*\n";
-    $message .= "📅 " . date('d M Y H:i') . "\n";
-    $message .= "👤 Shift Officer: " . $userName . "\n\n";
-    
-    $message .= "*💰 RINGKASAN TRANSAKSI:*\n";
-    $message .= "✅ Total Pemasukan: " . $formattedIncome . "\n";
-    $message .= "❌ Total Pengeluaran: " . $formattedExpense . "\n";
-    $message .= "📈 Saldo Bersih: " . $formattedBalance . "\n";
-    $message .= "🔢 Jumlah Transaksi: " . $transactionCount . "\n";
-    
-    if ($poCount > 0) {
-        $message .= "\n*📦 PO HARI INI:*\n";
-        $message .= "🔗 Jumlah PO: " . $poCount . "\n";
-        $message .= "📸 Lihat detail PO di dashboard\n";
+    if (!$data) {
+        $data = $_POST;
     }
     
-    $message .= "\n_Laporan otomatis dari sistem_";
+    $phoneNumber = isset($data['phone']) ? preg_replace('/[^0-9]/', '', $data['phone']) : '';
+    $reportData = isset($data['report']) ? $data['report'] : array();
     
-    // Encode message for URL
-    $urlMessage = urlencode($message);
+    if (empty($phoneNumber)) {
+        throw new Exception('Phone number is required');
+    }
     
-    // WhatsApp API options:
-    // 1. Direct WhatsApp Web Link (no API needed)
-    // 2. WhatsApp Business API (paid)
-    // 3. Twilio or similar service
+    // Format WhatsApp message
+    $message = "*Laporan Harian Shift*\n";
+    $message .= "Tanggal: " . (isset($reportData['date']) ? $reportData['date'] : date('Y-m-d')) . "\n\n";
+    $message .= "*Ringkasan Transaksi:*\n";
+    $message .= "Total Pemasukan: Rp " . number_format($reportData['total_income'] ?? 0) . "\n";
+    $message .= "Total Pengeluaran: Rp " . number_format($reportData['total_expense'] ?? 0) . "\n";
+    $message .= "Saldo Bersih: Rp " . number_format($reportData['net_balance'] ?? 0) . "\n\n";
     
-    // For now, we'll use WhatsApp Web Link method
-    // User will see dialog to confirm send
-    $whatsappUrl = "https://wa.me/" . str_replace(['+', ' ', '-', '(', ')'], '', $adminPhone) . "?text=" . $urlMessage;
+    if (isset($reportData['transaction_count']) && $reportData['transaction_count'] > 0) {
+        $message .= "Jumlah Transaksi: " . $reportData['transaction_count'] . "\n";
+    }
     
-    // Log the send action
-    $db->execute("
-        INSERT INTO shift_logs (user_id, action, data, created_at)
-        VALUES (?, ?, ?, NOW())
-    ", [
-        $currentUser['id'],
-        'end_shift_wa_send',
-        json_encode([
-            'phone' => $adminPhone,
-            'message' => $message,
-            'timestamp' => date('Y-m-d H:i:s')
-        ])
-    ]);
-
-    echo json_encode([
+    if (isset($reportData['pos_count']) && $reportData['pos_count'] > 0) {
+        $message .= "Jumlah PO: " . $reportData['pos_count'] . "\n";
+    }
+    
+    $message .= "\nLihat detail di aplikasi.";
+    
+    // URL encode the message
+    $encodedMessage = urlencode($message);
+    $whatsappUrl = "https://wa.me/" . $phoneNumber . "?text=" . $encodedMessage;
+    
+    // Build success response
+    $response = array(
         'status' => 'success',
-        'whatsapp_url' => $whatsappUrl,
-        'message' => $message,
-        'phone' => $adminPhone
-    ]);
-
+        'data' => array(
+            'whatsapp_web_url' => $whatsappUrl,
+            'phone' => $phoneNumber,
+            'message' => $message,
+            'instruction' => 'Open WhatsApp Web and send message to GM/Admin'
+        )
+    );
+    
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode([
+    $response = array(
         'status' => 'error',
         'message' => $e->getMessage()
-    ]);
+    );
 }
-?>
+
+// Output JSON only
+ob_end_clean();
+echo json_encode($response);
+exit;

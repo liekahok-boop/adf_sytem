@@ -1,219 +1,173 @@
 <?php
 /**
- * END SHIFT - Generate Daily Report, PO Data, and WhatsApp Integration
+ * END SHIFT API - STANDALONE
+ * Returns daily report data as JSON only
  */
 
-// Set header first
-header('Content-Type: application/json');
+// Prevent output buffering issues
+ob_start();
 
-define('APP_ACCESS', true);
+// Set JSON header IMMEDIATELY - before any other output
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
 
-// Try to load config files safely
+// Clear any buffered output
+ob_end_clean();
+ob_start();
+
+$response = array('status' => 'error', 'message' => 'Unknown error');
+
 try {
-    if (!file_exists('../config/config.php')) {
-        throw new Exception('Config file not found');
-    }
-    require_once '../config/config.php';
-    
-    if (!file_exists('../config/database.php')) {
-        throw new Exception('Database config not found');
-    }
-    require_once '../config/database.php';
-    
-    if (!file_exists('../includes/auth.php')) {
-        throw new Exception('Auth file not found');
-    }
-    require_once '../includes/auth.php';
-    
-    if (!file_exists('../includes/functions.php')) {
-        throw new Exception('Functions file not found');
-    }
-    require_once '../includes/functions.php';
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Configuration error: ' . $e->getMessage()
-    ]);
-    exit;
-}
-
-// Check authentication
-try {
-    if (!isset($_SESSION)) {
+    // Start session if needed
+    if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
+    // Check authentication
     if (!isset($_SESSION['user_id'])) {
         http_response_code(401);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Unauthorized - Please login first'
-        ]);
-        exit;
+        throw new Exception('Unauthorized - Please login');
     }
     
-    $auth = new Auth();
-    $currentUser = $auth->getCurrentUser();
+    $userId = (int)$_SESSION['user_id'];
+    $today = date('Y-m-d');
     
-    if (!$currentUser) {
-        http_response_code(401);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Invalid session'
-        ]);
-        exit;
+    // Direct database connection - NO external includes
+    $conn = new mysqli('localhost', 'root', '', 'adf_system');
+    if ($conn->connect_error) {
+        throw new Exception('DB Error: ' . $conn->connect_error);
     }
-} catch (Exception $e) {
-    http_response_code(401);
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Authentication error: ' . $e->getMessage()
-    ]);
-    exit;
-}
-
-$db = Database::getInstance();
-$today = date('Y-m-d');try {
-    // Get today's transactions
-    $transactions = [];
-    try {
-        $result = $db->fetchAll("
-            SELECT 
-                cb.id,
-                cb.transaction_date,
-                cb.transaction_type,
-                cb.amount,
-                cb.description,
-                cb.division_id,
-                COALESCE(d.division_name, 'Unknown') as division_name
-            FROM cash_book cb
-            LEFT JOIN divisions d ON cb.division_id = d.id
-            WHERE DATE(cb.transaction_date) = ?
-            ORDER BY cb.transaction_date DESC
-        ", [$today]);
-        $transactions = $result ?? [];
-    } catch (Exception $e) {
-        error_log('Transaction query error: ' . $e->getMessage());
-        $transactions = [];
-    }
-
-    // Calculate daily totals
+    $conn->set_charset('utf8');
+    
+    // Get transactions
+    $stmt = $conn->prepare("
+        SELECT 
+            cb.id, cb.transaction_date, cb.transaction_type, cb.amount,
+            cb.description, cb.division_id, COALESCE(d.division_name, 'N/A') as division_name
+        FROM cash_book cb
+        LEFT JOIN divisions d ON cb.division_id = d.id
+        WHERE DATE(cb.transaction_date) = ?
+        ORDER BY cb.transaction_date DESC
+    ");
+    $stmt->bind_param('s', $today);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $transactions = array();
     $totalIncome = 0;
     $totalExpense = 0;
-
-    foreach ($transactions as $trans) {
-        $amount = floatval($trans['amount'] ?? 0);
-        if (isset($trans['transaction_type'])) {
-            if ($trans['transaction_type'] === 'income') {
-                $totalIncome += $amount;
-            } else {
-                $totalExpense += $amount;
-            }
+    
+    while ($row = $result->fetch_assoc()) {
+        $transactions[] = $row;
+        $amount = (float)$row['amount'];
+        if ($row['transaction_type'] === 'income') {
+            $totalIncome += $amount;
+        } else {
+            $totalExpense += $amount;
         }
     }
-
-    $netBalance = $totalIncome - $totalExpense;
-
-    // Get POs created today
-    $pos = [];
-    try {
-        $result = $db->fetchAll("
-            SELECT 
-                po.id,
-                po.po_number,
-                po.supplier_id,
-                po.total_amount,
-                po.status,
-                po.created_at,
-                COALESCE(s.supplier_name, 'Unknown') as supplier_name,
-                pi.image_path
-            FROM purchase_orders po
-            LEFT JOIN suppliers s ON po.supplier_id = s.id
-            LEFT JOIN po_images pi ON po.id = pi.po_id AND pi.is_primary = 1
-            WHERE DATE(po.created_at) = ?
-            ORDER BY po.created_at DESC
-        ", [$today]);
-        $pos = $result ?? [];
-    } catch (Exception $e) {
-        error_log('PO query error: ' . $e->getMessage());
-        $pos = [];
-    }
-
-    // Get user and business info
-    $userInfo = $db->fetchOne("
-        SELECT u.id, u.username, u.full_name, u.email, u.phone, u.role, u.business_id,
-               b.id as business_id_2, b.business_name
-        FROM users u
-        LEFT JOIN businesses b ON u.business_id = b.id
-        WHERE u.id = ?
-    ", [$currentUser['id']]);
-
-    if (!$userInfo) {
-        throw new Exception('User information not found');
-    }
-
-    // Get admin/GM contact info
-    $adminInfo = $db->fetchOne("
-        SELECT id, phone, email FROM users WHERE (role = 'admin' OR role = 'gm' OR role = 'general_manager') LIMIT 1
+    $stmt->close();
+    
+    // Get POs
+    $stmt = $conn->prepare("
+        SELECT 
+            po.id, po.po_number, po.supplier_id, po.total_amount, po.status, po.created_at,
+            COALESCE(s.supplier_name, 'N/A') as supplier_name,
+            pi.image_path
+        FROM purchase_orders po
+        LEFT JOIN suppliers s ON po.supplier_id = s.id
+        LEFT JOIN po_images pi ON po.id = pi.po_id AND pi.is_primary = 1
+        WHERE DATE(po.created_at) = ?
+        ORDER BY po.created_at DESC
     ");
-
-    // Get business settings for WhatsApp number
-    $businessId = $currentUser['business_id'] ?? 1;
-    $settings = $db->fetchOne("
-        SELECT * FROM business_settings WHERE business_id = ?
-    ", [$businessId]);
-
-    $response = [
+    $stmt->bind_param('s', $today);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $pos = array();
+    while ($row = $result->fetch_assoc()) {
+        $pos[] = $row;
+    }
+    $stmt->close();
+    
+    // Get user
+    $stmt = $conn->prepare("
+        SELECT id, username, full_name, email, phone, role, business_id 
+        FROM users WHERE id = ?
+    ");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $userInfo = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    if (!$userInfo) {
+        throw new Exception('User not found');
+    }
+    
+    // Get admin
+    $stmt = $conn->prepare("
+        SELECT id, phone, email FROM users WHERE role IN ('admin', 'gm') LIMIT 1
+    ");
+    $stmt->execute();
+    $adminInfo = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    // Get WhatsApp number
+    $businessId = $userInfo['business_id'] ? (int)$userInfo['business_id'] : 1;
+    $stmt = $conn->prepare("
+        SELECT whatsapp_number FROM business_settings WHERE business_id = ?
+    ");
+    $stmt->bind_param('i', $businessId);
+    $stmt->execute();
+    $settingsResult = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    $conn->close();
+    
+    // Build success response
+    $response = array(
         'status' => 'success',
-        'data' => [
-            'user' => [
-                'name' => $userInfo['full_name'] ?? $userInfo['username'] ?? 'User',
-                'phone' => $userInfo['phone'] ?? '',
-                'email' => $userInfo['email'] ?? '',
-                'role' => $currentUser['role'] ?? 'staff'
-            ],
-            'business' => [
-                'name' => $userInfo['business_name'] ?? 'Narayana',
-                'phone' => '' // Get from settings if needed
-            ],
-            'daily_report' => [
+        'data' => array(
+            'user' => array(
+                'name' => $userInfo['full_name'] ?: ($userInfo['username'] ?: 'User'),
+                'phone' => $userInfo['phone'] ?: '',
+                'email' => $userInfo['email'] ?: '',
+                'role' => $userInfo['role'] ?: 'staff'
+            ),
+            'business' => array(
+                'name' => 'Narayana',
+                'phone' => ''
+            ),
+            'daily_report' => array(
                 'date' => $today,
                 'total_income' => (int)$totalIncome,
                 'total_expense' => (int)$totalExpense,
-                'net_balance' => (int)$netBalance,
+                'net_balance' => (int)($totalIncome - $totalExpense),
                 'transaction_count' => count($transactions),
-                'transactions' => $transactions ?? []
-            ],
-            'pos_data' => [
-                'count' => count($pos) ?? 0,
-                'list' => $pos ?? []
-            ],
-            'admin_contact' => $adminInfo ? [
-                'id' => $adminInfo['id'] ?? null,
-                'phone' => $adminInfo['phone'] ?? '',
-                'email' => $adminInfo['email'] ?? ''
-            ] : null,
-            'whatsapp_number' => $settings['whatsapp_number'] ?? ''
-        ]
-    ];
-
-    echo json_encode($response);
-
-} catch (Exception $e) {
-    // Log error untuk debugging
-    error_log('End Shift Error: ' . $e->getMessage());
-    error_log('Stack trace: ' . $e->getTraceAsString());
+                'transactions' => $transactions
+            ),
+            'pos_data' => array(
+                'count' => count($pos),
+                'list' => $pos
+            ),
+            'admin_contact' => $adminInfo ? array(
+                'id' => $adminInfo['id'] ?: null,
+                'phone' => $adminInfo['phone'] ?: '',
+                'email' => $adminInfo['email'] ?: ''
+            ) : null,
+            'whatsapp_number' => $settingsResult['whatsapp_number'] ?: ''
+        )
+    );
     
+} catch (Exception $e) {
     http_response_code(500);
-    echo json_encode([
+    $response = array(
         'status' => 'error',
-        'message' => 'Gagal mengambil data laporan: ' . $e->getMessage(),
-        'debug' => [
-            'error' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]
-    ]);
+        'message' => $e->getMessage()
+    );
 }
-?>
+
+// Output JSON only - clear buffer first
+ob_end_clean();
+echo json_encode($response);
+exit;
