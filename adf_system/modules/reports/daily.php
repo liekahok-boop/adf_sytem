@@ -3,6 +3,7 @@ require_once '../../config/config.php';
 require_once '../../config/database.php';
 require_once '../../includes/auth.php';
 require_once '../../includes/functions.php';
+require_once '../../includes/report_helper.php';
 
 // Check if user is logged in
 $auth = new Auth();
@@ -63,7 +64,27 @@ foreach ($dailySummary as $day) {
 }
 
 include '../../includes/header.php';
+
+// Get company info for print
+$company = getCompanyInfo();
+$dateRangeText = date('d M Y', strtotime($start_date)) . ' - ' . date('d M Y', strtotime($end_date));
 ?>
+
+<!-- Hidden Print Content -->
+<div style="display: none;" class="no-print"></div>
+
+<script>
+window.addEventListener('beforeprint', function() {
+    // Show print-specific content
+    var printContent = document.getElementById('printContent');
+    if (printContent) {
+        printContent.style.display = 'block';
+    }
+});
+</script>
+
+<!-- Main Content for Screen -->
+<div id="screenContent">
 
 <!-- Filter Section -->
 <div class="card" style="margin-bottom: 1.25rem;">
@@ -239,18 +260,190 @@ include '../../includes/header.php';
 
 <style>
     @media print {
-        .sidebar, .top-bar .user-info, .btn, .form-control, form {
+        .sidebar, .top-bar .user-info, .btn, .form-control, form, .filter-section, .no-print {
             display: none !important;
         }
         .main-content {
             margin-left: 0;
-            padding: 1rem;
+            padding: 20mm;
         }
         .card {
             box-shadow: none;
-            border: 1px solid #ccc;
+            border: 1px solid #ddd;
+            page-break-inside: avoid;
+        }
+        body {
+            font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+        }
+        table {
+            page-break-inside: avoid;
+        }
+        tr {
+            page-break-inside: avoid;
         }
     }
+    
+    .report-header {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 3px solid var(--primary-color);
+        align-items: flex-start;
+    }
+    
+    .report-header-logo {
+        flex-shrink: 0;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        font-size: 48px;
+    }
+    
+    .report-header-info {
+        flex: 1;
+    }
+    
+    .report-header-title {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+    }
+    
+    .report-header-company {
+        font-size: 11px;
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    .report-meta {
+        text-align: right;
+        min-width: 200px;
+    }
+    
+    .report-meta-item {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 1rem;
+    }
+    
+    .report-footer {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #ddd;
+        text-align: center;
+        font-size: 10px;
+        color: #999;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .summary-card-print {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color) 100%);
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        page-break-inside: avoid;
+    }
 </style>
+
+<!-- Print-Only Report Section -->
+<div id="printContent" style="display: none;">
+    <div style="width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm; background: white;">
+        <?php echo generateReportHeader('LAPORAN HARIAN', htmlspecialchars($division_id > 0 ? end($divisions)['division_name'] : 'Semua Divisi'), $dateRangeText); ?>
+        
+        <!-- Summary Cards for Print -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-bottom: 1.5rem;">
+            <?php
+            echo generateSummaryCard('💰 TOTAL PEMASUKAN', formatCurrency($grandIncome), '#10b981', '');
+            echo generateSummaryCard('💸 TOTAL PENGELUARAN', formatCurrency($grandExpense), '#ef4444', '');
+            echo generateSummaryCard('📊 NET BALANCE', formatCurrency($grandNet), $grandNet >= 0 ? '#3b82f6' : '#f59e0b', '');
+            echo generateSummaryCard('📈 TOTAL TRANSAKSI', number_format($grandTransactions), '#8b5cf6', '');
+            ?>
+        </div>
+        
+        <!-- Daily Summary Table -->
+        <h2 style="font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 1rem; page-break-after: avoid;">
+            Ringkasan Per Hari
+        </h2>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 11px;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); font-weight: 700;">
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #d1d5db;">Tanggal</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #d1d5db;">Hari</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 2px solid #d1d5db;">Pemasukan</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 2px solid #d1d5db;">Pengeluaran</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 2px solid #d1d5db;">Net Balance</th>
+                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #d1d5db;">Transaksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php 
+                $dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                $rowCount = 0;
+                foreach ($dailySummary as $day): 
+                    $bgColor = ($rowCount % 2 === 0) ? '#f9fafb' : '#ffffff';
+                    $netColor = ($day['net_balance'] >= 0) ? '#10b981' : '#ef4444';
+                    $rowCount++;
+                ?>
+                    <tr style="background: <?php echo $bgColor; ?>;">
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">
+                            <?php echo date('d/m/Y', strtotime($day['date'])); ?>
+                        </td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb;">
+                            <?php echo $dayNames[date('w', strtotime($day['date']))]; ?>
+                        </td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #10b981; font-weight: 600;">
+                            Rp <?php echo number_format($day['total_income'], 0, ',', '.'); ?>
+                        </td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ef4444; font-weight: 600;">
+                            Rp <?php echo number_format($day['total_expense'], 0, ',', '.'); ?>
+                        </td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align: right; color: <?php echo $netColor; ?>; font-weight: 700;">
+                            Rp <?php echo number_format($day['net_balance'], 0, ',', '.'); ?>
+                        </td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                            <?php echo $day['transaction_count']; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+            <tfoot>
+                <tr style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); font-weight: 800;">
+                    <td colspan="2" style="padding: 10px; border-top: 2px solid #d1d5db; border-bottom: 2px solid #d1d5db;">TOTAL</td>
+                    <td style="padding: 10px; text-align: right; border-top: 2px solid #d1d5db; border-bottom: 2px solid #d1d5db; color: #10b981;">
+                        Rp <?php echo number_format($grandIncome, 0, ',', '.'); ?>
+                    </td>
+                    <td style="padding: 10px; text-align: right; border-top: 2px solid #d1d5db; border-bottom: 2px solid #d1d5db; color: #ef4444;">
+                        Rp <?php echo number_format($grandExpense, 0, ',', '.'); ?>
+                    </td>
+                    <td style="padding: 10px; text-align: right; border-top: 2px solid #d1d5db; border-bottom: 2px solid #d1d5db; color: <?php echo $grandNet >= 0 ? '#10b981' : '#ef4444'; ?>;">
+                        Rp <?php echo number_format($grandNet, 0, ',', '.'); ?>
+                    </td>
+                    <td style="padding: 10px; text-align: center; border-top: 2px solid #d1d5db; border-bottom: 2px solid #d1d5db;">
+                        <?php echo $grandTransactions; ?>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        
+        <?php echo generateSignatureSection(); ?>
+        <?php echo generateReportFooter(); ?>
+    </div>
+</div>
 
 <?php include '../../includes/footer.php'; ?>
