@@ -16,25 +16,27 @@ async function initiateEndShift() {
             }
         });
 
-        if (!response.ok) {
-            throw new Error('Gagal mengambil data laporan');
-        }
-
         const result = await response.json();
         
-        if (result.status !== 'success') {
-            throw new Error(result.message || 'Gagal mengambil data');
-        }
-
         // Close loading modal
         closeLoadingModal();
-        
+
+        if (!response.ok || result.status !== 'success') {
+            const errorMsg = result.message || 'Gagal mengambil data laporan';
+            const errorDetail = result.debug ? '\n\nDetail: ' + JSON.stringify(result.debug) : '';
+            throw new Error(errorMsg + errorDetail);
+        }
+
         // Show end shift report modal
         showEndShiftModal(result.data);
 
     } catch (error) {
         closeLoadingModal();
-        alert('Error: ' + error.message);
+        
+        // Show detailed error
+        const errorMessage = error.message || 'Unknown error occurred';
+        alert('❌ Error: ' + errorMessage + '\n\nTry:\n1. Refresh page (F5)\n2. Check browser console (F12)\n3. Contact admin');
+        console.error('End Shift Error:', error);
     }
 }
 
