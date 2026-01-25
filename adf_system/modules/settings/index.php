@@ -145,6 +145,21 @@ include '../../includes/header.php';
         </div>
     </a>
     
+    <!-- End Shift Settings -->
+    <a href="end-shift.php" class="card" style="text-decoration: none; transition: all 0.3s; cursor: pointer;">
+        <div style="padding: 1.25rem;">
+            <div style="width: 48px; height: 48px; border-radius: var(--radius-lg); background: linear-gradient(135deg, #f093fb 0%, #f5576c 20%); display: flex; align-items: center; justify-content: center; margin-bottom: 0.875rem;">
+                <i data-feather="power" style="width: 24px; height: 24px; color: white;"></i>
+            </div>
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem;">
+                🌅 End Shift Configuration
+            </h3>
+            <p style="font-size: 0.813rem; color: var(--text-muted); margin: 0;">
+                Atur nomor WhatsApp GM/Admin untuk menerima laporan End Shift otomatis
+            </p>
+        </div>
+    </a>
+    
     <!-- Backup & Reset Data -->
     <a href="backup-reset.php" class="card" style="text-decoration: none; transition: all 0.3s; cursor: pointer;">
         <div style="padding: 1.25rem;">

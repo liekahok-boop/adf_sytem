@@ -297,6 +297,13 @@ if (isset($_SESSION['user_id'])) {
                 </div>
                 
                 <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <!-- End Shift Button -->
+                    <button onclick="initiateEndShift()" 
+                            style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; transition: all 0.3s;">
+                        <i data-feather="power" style="width: 18px; height: 18px;"></i>
+                        <span>End Shift</span>
+                    </button>
+
                     <!-- Date & Time Display -->
                     <div style="text-align: right; padding-right: 1.5rem; border-right: 1px solid var(--bg-tertiary);">
                         <div style="font-size: 0.813rem; font-weight: 600; color: var(--text-primary);" id="currentDate">

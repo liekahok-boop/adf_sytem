@@ -20,6 +20,9 @@
    <!-- Main JavaScript -->
    <script src="<?php echo BASE_URL; ?>/assets/js/main.js"></script>
    
+   <!-- End Shift Feature -->
+   <script src="<?php echo BASE_URL; ?>/assets/js/end-shift.js"></script>
+   
    <!-- Initialize Feather Icons -->
    <script>
        feather.replace();
