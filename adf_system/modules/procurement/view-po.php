@@ -235,7 +235,7 @@ include '../../includes/header.php';
                         <td class="text-right"><?php echo number_format($item['quantity'], 2); ?></td>
                         <td><?php echo $item['unit_of_measure']; ?></td>
                         <td class="text-right">Rp <?php echo number_format($item['unit_price'], 0, ',', '.'); ?></td>
-                        <td class="text-right" style="font-weight: 600;">Rp <?php echo number_format($item['total_price'], 0, ',', '.'); ?></td>
+                        <td class="text-right" style="font-weight: 600;">Rp <?php echo number_format($item['subtotal'], 0, ',', '.'); ?></td>
                         <td class="text-right">
                             <?php if (isset($item['received_quantity']) && $item['received_quantity'] > 0): ?>
                                 <span style="color: var(--success);"><?php echo number_format($item['received_quantity'], 2); ?></span>
