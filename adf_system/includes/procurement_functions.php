@@ -140,10 +140,10 @@ function createPurchaseOrder($supplier_id, $po_date, $items, $options = []) {
             'po_date' => $po_date,
             'expected_delivery_date' => isset($options['expected_delivery_date']) ? $options['expected_delivery_date'] : null,
             'status' => isset($options['status']) ? $options['status'] : 'draft',
-            'subtotal' => $total_amount,
+            'total_amount' => $total_amount,
             'discount_amount' => $discount_amount,
             'tax_amount' => $tax_amount,
-            'total_amount' => $grand_total,
+            'grand_total' => $grand_total,
             'notes' => isset($options['notes']) ? $options['notes'] : null,
             'created_by' => $created_by
         ];
