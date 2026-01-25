@@ -10,13 +10,13 @@ async function initiateEndShift() {
         
         // Debug: Test API first
         console.log('Testing API connectivity...');
-        const testResponse = await fetch('<?php echo BASE_URL; ?>/api/test-api.php');
+        const testResponse = await fetch('<?php echo BASE_URL; ?>/api/test-api.php?v=' + Date.now());
         const testResult = await testResponse.json();
         console.log('API Test Result:', testResult);
         
-        // Now fetch actual end shift data
+        // Now fetch actual end shift data - use new endpoint to bypass cache
         console.log('Fetching End Shift data...');
-        const response = await fetch('<?php echo BASE_URL; ?>/api/end-shift.php', {
+        const response = await fetch('<?php echo BASE_URL; ?>/api/end-shift-new.php?v=' + Date.now(), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

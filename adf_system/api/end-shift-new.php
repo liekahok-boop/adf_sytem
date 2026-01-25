@@ -1,12 +1,13 @@
 <?php
-// PURE JSON ONLY - NO FRAMEWORK, NO INCLUDES
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 session_start();
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo '{"status":"error","message":"Unauthorized"}';
-    exit;
+    die('{"status":"error","message":"Unauthorized"}');
 }
 
 $today = date('Y-m-d');
@@ -15,17 +16,15 @@ $userId = (int)$_SESSION['user_id'];
 $conn = new mysqli('localhost', 'root', '', 'adf_system');
 if ($conn->connect_error) {
     http_response_code(500);
-    echo '{"status":"error","message":"DB connection failed"}';
-    exit;
+    die('{"status":"error","message":"DB error"}');
 }
 $conn->set_charset('utf8');
 
-// Transactions
 $transactions = [];
 $totalIncome = 0;
 $totalExpense = 0;
 
-$stmt = $conn->prepare("SELECT id, amount, transaction_type, description FROM cash_book WHERE DATE(transaction_date) = ? ORDER BY transaction_date DESC");
+$stmt = $conn->prepare("SELECT id, amount, transaction_type FROM cash_book WHERE DATE(transaction_date) = ?");
 if ($stmt) {
     $stmt->bind_param('s', $today);
     $stmt->execute();
@@ -39,9 +38,8 @@ if ($stmt) {
     $stmt->close();
 }
 
-// POs
 $pos = [];
-$stmt = $conn->prepare("SELECT id, po_number, total_amount, status FROM purchase_orders WHERE DATE(created_at) = ? ORDER BY created_at DESC");
+$stmt = $conn->prepare("SELECT id, po_number FROM purchase_orders WHERE DATE(created_at) = ?");
 if ($stmt) {
     $stmt->bind_param('s', $today);
     $stmt->execute();
@@ -50,38 +48,29 @@ if ($stmt) {
     $stmt->close();
 }
 
-// User
-$userInfo = [];
+$user = [];
 $stmt = $conn->prepare("SELECT full_name, username FROM users WHERE id = ?");
 if ($stmt) {
     $stmt->bind_param('i', $userId);
     $stmt->execute();
-    $userInfo = $stmt->get_result()->fetch_assoc();
+    $user = $stmt->get_result()->fetch_assoc() ?: [];
     $stmt->close();
 }
 
 $conn->close();
 
-$response = [
+echo json_encode([
     'status' => 'success',
     'data' => [
-        'user' => [
-            'name' => $userInfo['full_name'] ?? $userInfo['username'] ?? 'User'
-        ],
+        'user' => ['name' => $user['full_name'] ?? $user['username'] ?? 'User'],
         'daily_report' => [
             'date' => $today,
             'total_income' => (int)$totalIncome,
             'total_expense' => (int)$totalExpense,
             'net_balance' => (int)($totalIncome - $totalExpense),
-            'transaction_count' => count($transactions),
-            'transactions' => $transactions
+            'transaction_count' => count($transactions)
         ],
-        'pos_data' => [
-            'count' => count($pos),
-            'list' => $pos
-        ]
+        'pos_data' => ['count' => count($pos), 'list' => $pos]
     ]
-];
-
-echo json_encode($response);
+]);
 exit;
