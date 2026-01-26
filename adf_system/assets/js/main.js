@@ -61,6 +61,42 @@ const toggleSidebar = () => {
     sidebar.classList.toggle('show');
 };
 
+// Toggle Dropdown Menu
+const setupDropdownToggles = () => {
+    console.log('🔧 Setting up dropdown toggles...');
+    const dropdownToggles = document.querySelectorAll('.nav-link.dropdown-toggle');
+    console.log('Found dropdown toggles:', dropdownToggles.length);
+    
+    dropdownToggles.forEach((toggle, index) => {
+        console.log('Attaching click handler to dropdown #' + index);
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Dropdown clicked!');
+            const navItem = this.closest('.nav-item.has-submenu');
+            
+            if (navItem) {
+                console.log('Found nav-item.has-submenu');
+                // Close other open dropdowns at same level
+                const siblings = navItem.parentElement.querySelectorAll('.nav-item.has-submenu.open');
+                siblings.forEach(sibling => {
+                    if (sibling !== navItem) {
+                        console.log('Closing sibling dropdown');
+                        sibling.classList.remove('open');
+                    }
+                });
+                
+                // Toggle current dropdown
+                console.log('Toggling current dropdown');
+                navItem.classList.toggle('open');
+            } else {
+                console.log('ERROR: nav-item.has-submenu not found');
+            }
+        });
+    });
+    console.log('✅ Dropdown toggles setup complete');
+};
+
+
 // Initialize Date Pickers
 const initDatePickers = () => {
     const dateInputs = document.querySelectorAll('input[type="date"]');
@@ -229,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initDatePickers();
     setupCalculations();
     setupSearch();
+    setupDropdownToggles(); // Add dropdown toggle handler
     
     // Add smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {

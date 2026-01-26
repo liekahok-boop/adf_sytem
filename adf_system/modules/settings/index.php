@@ -7,8 +7,8 @@ require_once '../../includes/functions.php';
 $auth = new Auth();
 $auth->requireLogin();
 
-// Only admin can access settings
-if (!$auth->hasRole('admin')) {
+// Check permission
+if (!$auth->hasPermission('settings')) {
     header('Location: ' . BASE_URL . '/index.php');
     exit;
 }

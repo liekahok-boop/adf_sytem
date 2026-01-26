@@ -23,8 +23,9 @@
    <!-- End Shift Feature -->
    <script src="<?php echo BASE_URL; ?>/assets/js/end-shift.js"></script>
    
-   <!-- Initialize Feather Icons -->
+   <!-- Initialize Feather Icons & Setup -->
    <script>
+       // Initialize Feather Icons
        feather.replace();
        
        // Real-time clock update
@@ -52,24 +53,6 @@
        // Update clock every second
        setInterval(updateClock, 1000);
        updateClock(); // Initial call
-       
-       // Dropdown Menu Toggle
-       document.querySelectorAll('.nav-item.has-submenu .dropdown-toggle').forEach(toggle => {
-           toggle.addEventListener('click', function(e) {
-               e.preventDefault();
-               const parentItem = this.closest('.nav-item.has-submenu');
-               
-               // Close other dropdowns
-               document.querySelectorAll('.nav-item.has-submenu').forEach(item => {
-                   if (item !== parentItem) {
-                       item.classList.remove('open');
-                   }
-               });
-               
-               // Toggle current dropdown
-               parentItem.classList.toggle('open');
-           });
-       });
    </script>
    
    <!-- html2pdf.js Library for PDF Export -->

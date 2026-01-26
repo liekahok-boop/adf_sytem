@@ -40,6 +40,9 @@ function getAvailableBusinesses() {
 function getActiveBusinessId() {
     // Start session if not started
     if (session_status() === PHP_SESSION_NONE) {
+        if (defined('SESSION_NAME')) {
+            session_name(SESSION_NAME);
+        }
         session_start();
     }
     
@@ -68,6 +71,9 @@ function getActiveBusinessId() {
 function setActiveBusinessId($businessId) {
     // Start session if not started
     if (session_status() === PHP_SESSION_NONE) {
+        if (defined('SESSION_NAME')) {
+            session_name(SESSION_NAME);
+        }
         session_start();
     }
     

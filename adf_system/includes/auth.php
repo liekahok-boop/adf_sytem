@@ -154,16 +154,37 @@ class Auth {
             return false;
         }
         
-        // Admin has access to everything
-        if ($this->hasRole('admin')) {
-            return true;
+        // Get user ID from session
+        $user_id = $_SESSION['user_id'] ?? null;
+        if (!$user_id) {
+            return false;
         }
         
-        // Define module access by role
+        try {
+            // Use existing database connection from $this->db
+            $conn = $this->db->getConnection();
+            
+            // Query user_permissions table
+            $query = "SELECT COUNT(*) as count FROM user_permissions WHERE user_id = ? AND permission = ?";
+            $stmt = $conn->prepare($query);
+            $stmt->execute([$user_id, $module]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // If found in database, return true
+            if ($result && intval($result['count']) > 0) {
+                return true;
+            }
+        } catch (Exception $e) {
+            // Log error for debugging
+            error_log("Permission check error: " . $e->getMessage());
+        }
+        
+        // Fallback: role-based permissions (for backward compatibility)
         $rolePermissions = [
-            'manager' => ['dashboard', 'cashbook', 'divisions', 'reports', 'sales_invoice', 'procurement', 'users', 'settings'],
-            'accountant' => ['dashboard', 'cashbook', 'reports', 'procurement'],
-            'staff' => ['dashboard', 'cashbook']
+            'admin' => ['dashboard', 'cashbook', 'divisions', 'frontdesk', 'sales_invoice', 'procurement', 'users', 'reports', 'settings', 'investor', 'project'],
+            'manager' => ['dashboard', 'cashbook', 'divisions', 'frontdesk', 'sales_invoice', 'procurement', 'users', 'reports', 'settings', 'investor', 'project'],
+            'accountant' => ['dashboard', 'cashbook', 'reports', 'procurement', 'investor', 'project'],
+            'staff' => ['dashboard', 'cashbook', 'investor', 'project']
         ];
         
         $userRole = $_SESSION['role'] ?? 'staff';

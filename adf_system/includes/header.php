@@ -171,7 +171,7 @@ if (isset($_SESSION['user_id'])) {
                     <li class="nav-item has-submenu <?php echo (strpos($_SERVER['REQUEST_URI'], '/procurement/') !== false) ? 'open' : ''; ?>">
                         <a href="javascript:void(0)" class="nav-link dropdown-toggle <?php echo activeMenu('procurement'); ?>">
                             <i data-feather="shopping-cart" class="nav-icon"></i>
-                            <span>PO/Shop</span>
+                            <span>PO & SHOOP</span>
                         </a>
                         <ul class="submenu">
                             <li class="submenu-item">
@@ -232,21 +232,64 @@ if (isset($_SESSION['user_id'])) {
                     </li>
                     <?php endif; ?>
                     
-                    <?php if ($auth->hasPermission('users')): ?>
-                    <li class="nav-item" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-tertiary);">
-                        <a href="<?php echo BASE_URL; ?>/modules/settings/users.php" class="nav-link <?php echo activeMenu('users.php'); ?>">
-                            <i data-feather="users" class="nav-icon"></i>
-                            <span>Kelola User</span>
+                    <!-- Investor Menu -->
+                    <?php if ($auth->hasPermission('investor')): ?>
+                    <li class="nav-item">
+                        <a href="<?php echo BASE_URL; ?>/modules/investor/" class="nav-link <?php echo activeMenu('investor'); ?>">
+                            <i data-feather="briefcase" class="nav-icon"></i>
+                            <span>Investor</span>
+                        </a>
+                    </li>
+                    <?php endif; ?>
+                    
+                    <!-- Project Menu -->
+                    <?php if ($auth->hasPermission('project')): ?>
+                    <li class="nav-item">
+                        <a href="<?php echo BASE_URL; ?>/modules/project/" class="nav-link <?php echo activeMenu('project'); ?>">
+                            <i data-feather="layers" class="nav-icon"></i>
+                            <span>Project</span>
                         </a>
                     </li>
                     <?php endif; ?>
                     
                     <?php if ($auth->hasPermission('settings')): ?>
-                    <li class="nav-item">
-                        <a href="<?php echo BASE_URL; ?>/modules/settings/" class="nav-link <?php echo activeMenu('settings-index'); ?>">
+                    <li class="nav-item has-submenu <?php echo (strpos($_SERVER['REQUEST_URI'], '/settings/') !== false) ? 'open' : ''; ?>" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-tertiary);">
+                        <a href="javascript:void(0)" class="nav-link dropdown-toggle <?php echo activeMenu('settings'); ?>">
                             <i data-feather="settings" class="nav-icon"></i>
                             <span><?php echo __('settings.title'); ?></span>
                         </a>
+                        <ul class="submenu">
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/settings/" class="submenu-link <?php echo activeMenu('settings-index'); ?>">
+                                    <i data-feather="home" class="submenu-icon"></i>
+                                    <span>Beranda Settings</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/settings/users.php" class="submenu-link <?php echo activeMenu('users.php'); ?>">
+                                    <i data-feather="users" class="submenu-icon"></i>
+                                    <span>Kelola User</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/settings/company.php" class="submenu-link <?php echo activeMenu('company.php'); ?>">
+                                    <i data-feather="briefcase" class="submenu-icon"></i>
+                                    <span>Setup Perusahaan</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/settings/display.php" class="submenu-link <?php echo activeMenu('display.php'); ?>">
+                                    <i data-feather="eye" class="submenu-icon"></i>
+                                    <span>Display & Theme</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/settings/reset.php" class="submenu-link <?php echo activeMenu('reset.php'); ?>">
+                                    <i data-feather="alert-circle" class="submenu-icon"></i>
+                                    <span>Reset Data</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <?php endif; ?>
                     

@@ -8,8 +8,8 @@ require_once '../../includes/business_helper.php';
 $auth = new Auth();
 $auth->requireLogin();
 
-// Only admin can access settings
-if (!$auth->hasRole('admin')) {
+// Check settings permission
+if (!$auth->hasPermission('settings')) {
     header('Location: ' . BASE_URL . '/index.php');
     exit;
 }
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Save permissions
             if (isset($_POST['permissions']) && is_array($_POST['permissions'])) {
                 foreach ($_POST['permissions'] as $permission) {
-                    $db->insert('user_permissions', ['user_id' => $userId, 'permission_key' => $permission]);
+                    $db->insert('user_permissions', ['user_id' => $userId, 'permission' => $permission]);
                 }
             }
             
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->delete('user_permissions', 'user_id = :user_id', ['user_id' => $id]);
             if (isset($_POST['permissions']) && is_array($_POST['permissions'])) {
                 foreach ($_POST['permissions'] as $permission) {
-                    $db->insert('user_permissions', ['user_id' => $id, 'permission_key' => $permission]);
+                    $db->insert('user_permissions', ['user_id' => $id, 'permission' => $permission]);
                 }
             }
             
@@ -156,8 +156,8 @@ $userBusinessAccess = [];
 if ($action === 'edit' && $id > 0) {
     $editUser = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$id]);
     // Get user permissions
-    $permRows = $db->fetchAll("SELECT permission_key FROM user_permissions WHERE user_id = ?", [$id]);
-    $userPermissions = array_column($permRows, 'permission_key');
+    $permRows = $db->fetchAll("SELECT permission FROM user_permissions WHERE user_id = ?", [$id]);
+    $userPermissions = array_column($permRows, 'permission');
     // Get business access
     if (!empty($editUser['business_access'])) {
         $userBusinessAccess = json_decode($editUser['business_access'], true) ?: [];
@@ -316,7 +316,9 @@ include '../../includes/header.php';
                     'procurement' => ['label' => 'Procurement', 'icon' => 'shopping-cart', 'desc' => 'Purchase orders & suppliers'],
                     'reports' => ['label' => 'Laporan', 'icon' => 'bar-chart-2', 'desc' => 'Laporan keuangan lengkap'],
                     'users' => ['label' => 'Kelola User', 'icon' => 'users', 'desc' => 'Manajemen user & permissions'],
-                    'settings' => ['label' => 'Pengaturan', 'icon' => 'settings', 'desc' => 'Konfigurasi sistem']
+                    'settings' => ['label' => 'Pengaturan', 'icon' => 'settings', 'desc' => 'Konfigurasi sistem'],
+                    'investor' => ['label' => 'Investor', 'icon' => 'briefcase', 'desc' => 'Manajemen investor dan modal'],
+                    'project' => ['label' => 'Project', 'icon' => 'layers', 'desc' => 'Manajemen project dan pengeluaran']
                 ];
                 ?>
                 
@@ -448,8 +450,8 @@ include '../../includes/header.php';
                     <?php foreach ($users as $user): ?>
                         <?php
                         // Get user permissions
-                        $userPerms = $db->fetchAll("SELECT permission_key FROM user_permissions WHERE user_id = ?", [$user['id']]);
-                        $permKeys = array_column($userPerms, 'permission_key');
+                        $userPerms = $db->fetchAll("SELECT permission FROM user_permissions WHERE user_id = ?", [$user['id']]);
+                        $permKeys = array_column($userPerms, 'permission');
                         
                         // Get business access
                         $businessAccess = [];

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug: HTML Structure Check</title>
+    <style>
+        body { font-family: monospace; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #333; }
+        .code-block { background: #f0f0f0; border: 1px solid #ddd; padding: 15px; border-radius: 5px; overflow-x: auto; margin: 10px 0; }
+        .hint { background: #fff3cd; padding: 12px; border-left: 4px solid #ffc107; margin: 10px 0; }
+        .success { background: #d1fae5; padding: 12px; border-left: 4px solid #10b981; margin: 10px 0; }
+        .error { background: #fee2e2; padding: 12px; border-left: 4px solid #ef4444; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug: HTML Structure & CSS/JS Verification</h1>
+        
+        <h2>Step 1: Check HTML Structure</h2>
+        <p>Open DevTools (F12) → Inspector Tab → Find this in the HTML:</p>
+        
+        <div class="code-block">
+&lt;li class="nav-item has-submenu"&gt;
+  &lt;a href="javascript:void(0)" class="nav-link dropdown-toggle"&gt;
+    &lt;i data-feather="briefcase"&gt;&lt;/i&gt;
+    &lt;span&gt;Investor&lt;/span&gt;
+  &lt;/a&gt;
+  &lt;ul class="submenu"&gt;
+    &lt;li class="submenu-item"&gt;
+      &lt;a href="..." class="submenu-link"&gt;
+        &lt;span&gt;Daftar Investor&lt;/span&gt;
+      &lt;/a&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/li&gt;
+        </div>
+        
+        <p><strong>To verify:</strong></p>
+        <ol>
+            <li>Open DevTools (F12)</li>
+            <li>Go to Inspector/Elements tab</li>
+            <li>Find "Investor" in the sidebar</li>
+            <li>Check if it has:
+                <ul>
+                    <li>✓ class="nav-item has-submenu"</li>
+                    <li>✓ class="nav-link dropdown-toggle"</li>
+                    <li>✓ &lt;ul class="submenu"&gt; inside</li>
+                </ul>
+            </li>
+        </ol>
+        
+        <h2>Step 2: Check CSS Loaded</h2>
+        <p>DevTools → Inspector → Find nav-item in HTML → Right-click → Inspect</p>
+        <p>Then check "Styles" tab (right panel) for these styles:</p>
+        
+        <div class="code-block">
+.nav-item.has-submenu { position: relative; }
+.nav-link.dropdown-toggle { cursor: pointer; }
+.nav-link.dropdown-toggle::after { ... arrow ... }
+.submenu { max-height: 0; overflow: hidden; }
+.nav-item.has-submenu.open .submenu { max-height: 500px; }
+        </div>
+        
+        <p>If these styles are NOT there → CSS not loaded correctly</p>
+        
+        <h2>Step 3: Check JavaScript</h2>
+        <p>DevTools → Console tab</p>
+        <p>When page loads, you should see these messages:</p>
+        
+        <div class="code-block">
+🚀 Narayana Hotel Management System Initialized
+🔧 Setting up dropdown toggles...
+Found dropdown toggles: 3
+Attaching click handler to dropdown #0
+Attaching click handler to dropdown #1
+Attaching click handler to dropdown #2
+✅ Dropdown toggles setup complete
+        </div>
+        
+        <p>If you DON'T see these messages → JavaScript not loaded or has error</p>
+        
+        <h2>Step 4: Test Dropdown</h2>
+        <p>In Console tab, run this command:</p>
+        
+        <div class="code-block">
+document.querySelectorAll('.nav-link.dropdown-toggle').length
+        </div>
+        
+        <p>Should return 3 (Investor, Project, Settings)</p>
+        <p>If returns 0 → HTML structure is wrong</p>
+        
+        <h2>Step 5: Manual Test</h2>
+        <ol>
+            <li>Click on "Investor" in sidebar</li>
+            <li>Open DevTools → Console</li>
+            <li>Should see "Dropdown clicked!" message</li>
+            <li>Check if 'open' class is added to the li element</li>
+        </ol>
+        
+        <h2>🔗 Quick Links for Testing</h2>
+        
+        <div class="success">
+            <p><strong>Check Menu Visibility:</strong></p>
+            <p><code>http://localhost:8080/adf_system/debug-menu-visibility.php</code></p>
+        </div>
+        
+        <div class="success">
+            <p><strong>Check System Health:</strong></p>
+            <p><code>http://localhost:8080/adf_system/system-health-check.php</code></p>
+        </div>
+        
+        <div class="hint">
+            <p><strong>⚠️ Common Issues:</strong></p>
+            <ul>
+                <li>If no "Investor" menu appears → Permission check returning FALSE</li>
+                <li>If menu appears but dropdown doesn't open → HTML structure wrong OR CSS/JS not loaded</li>
+                <li>If dropdown opens but submenu doesn't show → CSS styles wrong</li>
+            </ul>
+        </div>
+        
+        <p style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem;">
+            <a href="<?php echo BASE_URL ?? 'http://localhost:8080/adf_system'; ?>/index.php">← Back to Dashboard</a>
+        </p>
+    </div>
+</body>
+</html>
