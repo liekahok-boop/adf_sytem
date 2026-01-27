@@ -432,11 +432,12 @@ foreach ($investors as $inv) {
                                     </td>
                                     <td>
                                         <div class="action-buttons">
-                                            <button class="btn btn-secondary btn-small" onclick="viewInvestor(<?php echo $inv['id']; ?>)">
+                                            <button class="btn btn-secondary btn-small" onclick="viewInvestor(<?php echo $inv['id']; ?>)" title="Lihat Detail">
                                                 <i data-feather="eye" style="width: 14px; height: 14px;"></i>
                                             </button>
-                                            <button class="btn btn-secondary btn-small" onclick="addCapitalTransaction(<?php echo $inv['id']; ?>)">
-                                                <i data-feather="plus" style="width: 14px; height: 14px;"></i>
+                                            <button class="btn btn-success btn-small" onclick="addCapitalTransaction(<?php echo $inv['id']; ?>)" title="Tambah Modal" style="background: #10b981; border-color: #10b981;">
+                                                <i data-feather="plus-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                                                Saldo
                                             </button>
                                         </div>
                                     </td>
