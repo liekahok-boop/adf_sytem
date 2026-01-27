@@ -13,6 +13,7 @@ require_once $base_path . '/config/config.php';
 require_once $base_path . '/config/database.php';
 require_once $base_path . '/includes/auth.php';
 require_once $base_path . '/includes/InvestorManager.php';
+require_once $base_path . '/includes/ProjectManager.php';
 
 // Check permission
 $auth = new Auth();
@@ -26,9 +27,29 @@ if (!$auth->hasPermission('investor')) {
 
 $db = Database::getInstance()->getConnection();
 $investor = new InvestorManager($db);
+$project = new ProjectManager($db);
 
 // Get all investors
 $investors = $investor->getAllInvestors();
+
+// Get all projects with expenses
+$projects = $project->getAllProjects();
+
+// Get recent expenses (last 10)
+$recent_expenses = [];
+try {
+    $stmt = $db->prepare("
+        SELECT pe.*, p.name as project_name 
+        FROM project_expenses pe
+        JOIN projects p ON pe.project_id = p.id
+        ORDER BY pe.expense_date DESC, pe.created_at DESC
+        LIMIT 10
+    ");
+    $stmt->execute();
+    $recent_expenses = $stmt->fetchAll();
+} catch (Exception $e) {
+    // Table might not exist yet
+}
 
 // Calculate total capital across all investors
 $total_capital = 0;
@@ -346,30 +367,41 @@ foreach ($investors as $inv) {
             <!-- Alert Messages -->
             <div id="alertContainer"></div>
 
-            <!-- Dashboard Cards -->
-            <div class="dashboard-cards">
-                <div class="card">
-                    <div class="card-header">Total Modal Masuk</div>
-                    <div class="card-value">Rp <?php echo number_format($total_capital, 0, ',', '.'); ?></div>
-                    <div class="card-subtext">USD <?php echo number_format($total_capital / 15500, 2, ',', '.'); ?></div>
+            <!-- Kas Besar Section - Elegant Design -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 2.5rem; margin-bottom: 2rem; box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h2 style="color: white; margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 2rem;">💼</span>
+                            Kas Besar Projek
+                        </h2>
+                        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 1rem;">Dana pooling dari <?php echo count($investors); ?> investor untuk pembiayaan projek</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.875rem; margin-bottom: 0.25rem;">Total Dana Tersedia</div>
+                        <div style="color: white; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px;">
+                            Rp <?php echo number_format($total_capital, 0, ',', '.'); ?>
+                        </div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.938rem; margin-top: 0.25rem;">
+                            ≈ USD $<?php echo number_format($total_capital / 15500, 2, ',', '.'); ?>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="card">
-                    <div class="card-header">Total Pengeluaran</div>
-                    <div class="card-value">Rp <?php echo number_format($total_expenses, 0, ',', '.'); ?></div>
-                    <div class="card-subtext">Project expenses terdakumulasi</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">Saldo Tersedia</div>
-                    <div class="card-value" style="color: #22c55e;">Rp <?php echo number_format($total_balance, 0, ',', '.'); ?></div>
-                    <div class="card-subtext">Saldo untuk project baru</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">Jumlah Investor</div>
-                    <div class="card-value"><?php echo count($investors); ?></div>
-                    <div class="card-subtext">Investor aktif</div>
+                
+                <!-- Stats Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem;">
+                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.2);">
+                        <div style="color: rgba(255,255,255,0.9); font-size: 0.813rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Modal Terkumpul</div>
+                        <div style="color: white; font-size: 1.5rem; font-weight: 700;">Rp <?php echo number_format($total_capital, 0, ',', '.'); ?></div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.2);">
+                        <div style="color: rgba(255,255,255,0.9); font-size: 0.813rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Terpakai Projek</div>
+                        <div style="color: white; font-size: 1.5rem; font-weight: 700;">Rp <?php echo number_format($total_expenses, 0, ',', '.'); ?></div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.2);">
+                        <div style="color: rgba(255,255,255,0.9); font-size: 0.813rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Kas</div>
+                        <div style="color: #86efac; font-size: 1.5rem; font-weight: 700;">Rp <?php echo number_format($total_balance, 0, ',', '.'); ?></div>
+                    </div>
                 </div>
             </div>
 
@@ -399,7 +431,6 @@ foreach ($investors as $inv) {
                                 <th>Nama Investor</th>
                                 <th>Kontak</th>
                                 <th>Modal Masuk</th>
-                                <th>Pengeluaran</th>
                                 <th>Saldo</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
@@ -417,13 +448,12 @@ foreach ($investors as $inv) {
                                         <small style="color: var(--text-muted);"><?php echo htmlspecialchars($inv['email'] ?? '-'); ?></small>
                                     </td>
                                     <td>
-                                        <strong>Rp <?php echo number_format($inv['total_capital_idr'] ?? 0, 0, ',', '.'); ?></strong>
+                                        <strong style="color: var(--text-primary); font-size: 1rem;">Rp <?php echo number_format($inv['total_capital_idr'] ?? 0, 0, ',', '.'); ?></strong>
+                                        <br><small style="color: var(--text-muted); font-size: 0.813rem;">USD $<?php echo number_format(($inv['total_capital_idr'] ?? 0) / 15500, 2, ',', '.'); ?></small>
                                     </td>
                                     <td>
-                                        <strong>Rp <?php echo number_format($inv['total_expenses_idr'] ?? 0, 0, ',', '.'); ?></strong>
-                                    </td>
-                                    <td>
-                                        <strong style="color: #22c55e;">Rp <?php echo number_format($inv['remaining_balance_idr'] ?? 0, 0, ',', '.'); ?></strong>
+                                        <strong style="color: #22c55e; font-size: 1rem;">Rp <?php echo number_format($inv['remaining_balance_idr'] ?? 0, 0, ',', '.'); ?></strong>
+                                        <br><small style="color: var(--text-muted); font-size: 0.813rem;">Kontribusi ke kas</small>
                                     </td>
                                     <td>
                                         <span class="status-badge status-active">
@@ -452,6 +482,153 @@ foreach ($investors as $inv) {
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Pie Chart dan Recent Transactions Section -->
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem;">
+            <!-- Pie Chart: Pengeluaran Per Projek -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary);">
+                        <i data-feather="pie-chart" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i>
+                        Pengeluaran Per Projek
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($projects) && array_sum(array_column($projects, 'total_expenses_idr')) > 0): ?>
+                        <canvas id="projectExpenseChart" style="max-height: 300px;"></canvas>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 3rem;">
+                            <i data-feather="pie-chart" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                            <p style="color: var(--text-muted); margin: 0;">Belum ada data pengeluaran projek</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary);">
+                        <i data-feather="activity" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i>
+                        Aktivitas Pengeluaran Terbaru
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($recent_expenses)): ?>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <?php foreach ($recent_expenses as $expense): ?>
+                                <div style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; color: var(--text-primary); margin-bottom: 0.25rem;">
+                                            <?php echo htmlspecialchars($expense['project_name']); ?>
+                                        </div>
+                                        <div style="font-size: 0.875rem; color: var(--text-muted);">
+                                            <?php echo htmlspecialchars($expense['description'] ?? '-'); ?>
+                                        </div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                            <?php echo date('d M Y', strtotime($expense['expense_date'])); ?>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right; white-space: nowrap; margin-left: 1rem;">
+                                        <div style="font-weight: 600; color: #ef4444;">
+                                            -Rp <?php echo number_format($expense['amount_idr'], 0, ',', '.'); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 3rem;">
+                            <i data-feather="activity" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                            <p style="color: var(--text-muted); margin: 0;">Belum ada transaksi pengeluaran</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rekap Detail Pengeluaran Per Projek -->
+        <?php if (!empty($projects)): ?>
+            <div class="card" style="margin-top: 2rem;">
+                <div class="card-header">
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary);">
+                        <i data-feather="bar-chart-2" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i>
+                        Rekap Detail Pengeluaran Per Projek
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">No</th>
+                                <th>Nama Projek</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Total Pengeluaran (IDR)</th>
+                                <th style="text-align: right;">Total Pengeluaran (USD)</th>
+                                <th style="text-align: right; width: 120px;">% dari Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $no = 1;
+                            $total_all_expenses = array_sum(array_column($projects, 'total_expenses_idr'));
+                            foreach ($projects as $project): 
+                                $percentage = $total_all_expenses > 0 ? ($project['total_expenses_idr'] / $total_all_expenses) * 100 : 0;
+                            ?>
+                                <tr>
+                                    <td style="text-align: center;"><?php echo $no++; ?></td>
+                                    <td>
+                                        <div style="font-weight: 500; color: var(--text-primary);">
+                                            <?php echo htmlspecialchars($project['name']); ?>
+                                        </div>
+                                        <?php if (!empty($project['description'])): ?>
+                                            <div style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                <?php echo htmlspecialchars($project['description']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-<?php echo $project['status'] === 'active' ? 'success' : ($project['status'] === 'completed' ? 'info' : 'danger'); ?>">
+                                            <?php 
+                                            echo $project['status'] === 'active' ? 'Active' : 
+                                                 ($project['status'] === 'completed' ? 'Completed' : 'On Hold');
+                                            ?>
+                                        </span>
+                                    </td>
+                                    <td style="text-align: right; font-weight: 500;">
+                                        Rp <?php echo number_format($project['total_expenses_idr'], 0, ',', '.'); ?>
+                                    </td>
+                                    <td style="text-align: right; font-weight: 500; color: var(--text-muted);">
+                                        $<?php echo number_format($project['total_expenses_usd'], 2, ',', '.'); ?>
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="flex: 1; height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                                                <div style="width: <?php echo number_format($percentage, 1); ?>%; height: 100%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); transition: width 0.3s ease;"></div>
+                                            </div>
+                                            <span style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem; white-space: nowrap;">
+                                                <?php echo number_format($percentage, 1); ?>%
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <tr style="border-top: 2px solid var(--border-color); font-weight: 600; background: var(--bg-secondary);">
+                                <td colspan="3" style="text-align: right;">TOTAL:</td>
+                                <td style="text-align: right; color: #ef4444;">
+                                    Rp <?php echo number_format($total_all_expenses, 0, ',', '.'); ?>
+                                </td>
+                                <td style="text-align: right; color: #ef4444;">
+                                    $<?php echo number_format(array_sum(array_column($projects, 'total_expenses_usd')), 2, ',', '.'); ?>
+                                </td>
+                                <td style="text-align: right;">100%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <?php endif; ?>
+
     </main>
 
     <!-- Add Investor Modal -->
@@ -813,6 +990,120 @@ foreach ($investors as $inv) {
                 },
                 animation: {
                     duration: 2000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        // Initialize Project Expense Pie Chart
+        const ctx2 = document.getElementById('projectExpenseChart').getContext('2d');
+        const projectData = <?php
+            $project_labels = [];
+            $project_expenses = [];
+            $project_colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6'];
+            
+            foreach ($projects as $proj) {
+                $project_labels[] = $proj['name'];
+                $project_expenses[] = $proj['total_expenses_idr'] ?? 0;
+            }
+            
+            echo json_encode([
+                'labels' => $project_labels,
+                'data' => $project_expenses,
+                'colors' => array_slice($project_colors, 0, count($project_labels))
+            ]);
+        ?>;
+
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: projectData.labels,
+                datasets: [{
+                    data: projectData.data,
+                    backgroundColor: projectData.colors,
+                    borderColor: '#1e293b',
+                    borderWidth: 3,
+                    hoverBorderColor: '#0f172a',
+                    hoverBorderWidth: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: '#cbd5e1',
+                            font: {
+                                size: 13,
+                                weight: '600',
+                                family: "'Inter', 'Segoe UI', sans-serif"
+                            },
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return {
+                                            text: label + ' (' + percentage + '%)',
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#cbd5e1',
+                        borderColor: '#6366f1',
+                        borderWidth: 2,
+                        padding: 16,
+                        displayColors: true,
+                        titleFont: {
+                            size: 15,
+                            weight: '600',
+                            family: "'Inter', 'Segoe UI', sans-serif"
+                        },
+                        bodyFont: {
+                            size: 14,
+                            weight: '500'
+                        },
+                        callbacks: {
+                            title: function(context) {
+                                return '📊 ' + context[0].label;
+                            },
+                            label: function(context) {
+                                const value = context.parsed;
+                                const formatted = new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0
+                                }).format(value);
+                                return 'Pengeluaran: ' + formatted;
+                            },
+                            afterLabel: function(context) {
+                                const total = projectData.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                return 'Porsi: ' + percentage + '% dari total';
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
                     easing: 'easeInOutQuart'
                 }
             }

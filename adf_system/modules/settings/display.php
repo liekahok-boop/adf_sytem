@@ -47,13 +47,13 @@ try {
     }
 }
 
-// Get current user preferences (theme & language)
+// Get current user preferences (theme & language) for current business
 $preferences = $db->fetchOne(
-    "SELECT * FROM user_preferences WHERE user_id = ?",
-    [$currentUser['id']]
+    "SELECT * FROM user_preferences WHERE user_id = ? AND branch_id = ?",
+    [$currentUser['id'], ACTIVE_BUSINESS_ID]
 );
-$currentTheme = $preferences['theme'] ?? $_SESSION['user_theme'] ?? 'dark';
-$currentLanguage = $preferences['language'] ?? $_SESSION['user_language'] ?? 'id';
+$currentTheme = $preferences['theme'] ?? 'dark';
+$currentLanguage = $preferences['language'] ?? 'id';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,40 +76,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
         
-        // Update user preferences (theme & language)
+        // Update user preferences (theme & language) for current business
         $theme = $_POST['theme'] ?? 'dark';
         $language = $_POST['language'] ?? 'id';
         
+        // Debug log
+        error_log("Saving theme: $theme for user {$currentUser['id']} in business " . ACTIVE_BUSINESS_ID);
+        
         try {
-            $existing = $db->fetchOne(
-                "SELECT id FROM user_preferences WHERE user_id = ?",
-                [$currentUser['id']]
-            );
+            // First, check if table has branch_id column
+            $columns = $db->getConnection()->query("SHOW COLUMNS FROM user_preferences")->fetchAll(PDO::FETCH_COLUMN);
+            $hasBranchId = in_array('branch_id', $columns);
             
-            if ($existing) {
-                $db->update('user_preferences', [
-                    'theme' => $theme,
-                    'language' => $language,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ], 'user_id = :user_id', ['user_id' => $currentUser['id']]);
+            if ($hasBranchId) {
+                // New system: per business
+                $existing = $db->fetchOne(
+                    "SELECT id FROM user_preferences WHERE user_id = ? AND branch_id = ?",
+                    [$currentUser['id'], ACTIVE_BUSINESS_ID]
+                );
+                
+                if ($existing) {
+                    $result = $db->update('user_preferences', [
+                        'theme' => $theme,
+                        'language' => $language,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ], 'user_id = :user_id AND branch_id = :branch_id', [
+                        'user_id' => $currentUser['id'],
+                        'branch_id' => ACTIVE_BUSINESS_ID
+                    ]);
+                    error_log("Updated existing preference, result: " . ($result ? 'success' : 'failed'));
+                } else {
+                    $result = $db->insert('user_preferences', [
+                        'user_id' => $currentUser['id'],
+                        'branch_id' => ACTIVE_BUSINESS_ID,
+                        'theme' => $theme,
+                        'language' => $language
+                    ]);
+                    error_log("Inserted new preference, ID: $result");
+                }
             } else {
-                $db->insert('user_preferences', [
-                    'user_id' => $currentUser['id'],
-                    'theme' => $theme,
-                    'language' => $language
-                ]);
+                // Old system: global per user
+                $existing = $db->fetchOne(
+                    "SELECT id FROM user_preferences WHERE user_id = ?",
+                    [$currentUser['id']]
+                );
+                
+                if ($existing) {
+                    $db->update('user_preferences', [
+                        'theme' => $theme,
+                        'language' => $language,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ], 'user_id = :user_id', ['user_id' => $currentUser['id']]);
+                } else {
+                    $db->insert('user_preferences', [
+                        'user_id' => $currentUser['id'],
+                        'theme' => $theme,
+                        'language' => $language
+                    ]);
+                }
             }
         } catch (Exception $prefError) {
-            // If user_preferences update fails, just update session
+            // If user_preferences update fails, log error
             error_log('Failed to update user_preferences: ' . $prefError->getMessage());
+            throw $prefError; // Re-throw to trigger rollback
         }
         
-        // Update session
-        $_SESSION['user_theme'] = $theme;
-        $_SESSION['user_language'] = $language;
+        // Don't update global session for theme (it's now per-business)
+        // Each business will load its own theme from database
         
         $db->getConnection()->commit();
-        setFlashMessage('success', 'Pengaturan tampilan berhasil diupdate!');
+        setFlashMessage('success', 'Pengaturan tampilan untuk ' . BUSINESS_NAME . ' berhasil diupdate!');
         header('Location: display.php?saved=1');
         exit;
     } catch (Exception $e) {
@@ -124,13 +160,17 @@ $sampleDate = date('Y-m-d');
 
 include '../../includes/header.php';
 
-// Show success message if just saved
+// Show success message if just saved AND force apply theme
 if (isset($_GET['saved'])) {
     echo '<script>
+        // Force reload theme from body attribute
         setTimeout(function() {
+            const currentTheme = document.body.getAttribute("data-theme");
+            console.log("Applied theme after save:", currentTheme);
+            
             const successDiv = document.createElement("div");
             successDiv.style.cssText = "position: fixed; top: 20px; right: 20px; background: var(--success); color: white; padding: 1rem 1.5rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); z-index: 9999; animation: slideIn 0.3s ease-out;";
-            successDiv.innerHTML = "<div style=\\"display: flex; align-items: center; gap: 0.5rem;\\"><i data-feather=\\"check-circle\\" style=\\"width: 16px; height: 16px;\\"></i><span>Pengaturan berhasil disimpan dan diterapkan!</span></div>";
+            successDiv.innerHTML = "<div style=\\"display: flex; align-items: center; gap: 0.5rem;\\"><i data-feather=\\"check-circle\\" style=\\"width: 16px; height: 16px;\\"></i><span>Pengaturan berhasil disimpan! Tema: " + currentTheme + "</span></div>";
             document.body.appendChild(successDiv);
             feather.replace();
             setTimeout(() => {
@@ -353,6 +393,7 @@ if (isset($_GET['saved'])) {
     document.addEventListener('DOMContentLoaded', function() {
         const currentTheme = '<?php echo $currentTheme; ?>';
         document.body.setAttribute('data-theme', currentTheme);
+        console.log('Theme applied on page load:', currentTheme);
     });
     
     // Theme selection with instant preview
@@ -364,6 +405,7 @@ if (isset($_GET['saved'])) {
             
             const selectedTheme = this.querySelector('input[type="radio"]').value;
             document.body.setAttribute('data-theme', selectedTheme);
+            console.log('Theme preview:', selectedTheme);
         });
     });
     
@@ -373,6 +415,8 @@ if (isset($_GET['saved'])) {
     const currencyPreview = document.getElementById('currencyPreview');
     
     function updateCurrencyPreview() {
+        if (!currencySymbol || !currencyPosition || !currencyPreview) return;
+        
         const symbol = currencySymbol.value;
         const position = currencyPosition.value;
         const amount = '1,500,000';
@@ -384,8 +428,10 @@ if (isset($_GET['saved'])) {
         }
     }
     
-    currencySymbol.addEventListener('change', updateCurrencyPreview);
-    currencyPosition.addEventListener('change', updateCurrencyPreview);
+    if (currencySymbol && currencyPosition) {
+        currencySymbol.addEventListener('change', updateCurrencyPreview);
+        currencyPosition.addEventListener('change', updateCurrencyPreview);
+    }
     
     // Live preview for date format
     const dateFormat = document.getElementById('dateFormat');
@@ -399,9 +445,11 @@ if (isset($_GET['saved'])) {
         'F d, Y': '<?php echo date('F d, Y'); ?>'
     };
     
-    dateFormat.addEventListener('change', function() {
-        datePreview.textContent = dateFormats[this.value];
-    });
+    if (dateFormat && datePreview) {
+        dateFormat.addEventListener('change', function() {
+            datePreview.textContent = dateFormats[this.value];
+        });
+    }
 </script>
 
 <?php include '../../includes/footer.php'; ?>

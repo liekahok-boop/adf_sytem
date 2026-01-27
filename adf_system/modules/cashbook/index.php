@@ -28,20 +28,23 @@ $pageTitle = BUSINESS_ICON . ' ' . $displayCompanyName . ' - Buku Kas Besar';
 $pageSubtitle = 'Pencatatan Transaksi Keuangan';
 
 // Filtering
-$filterDate = getGet('date', date('Y-m-d'));
-$filterMonth = getGet('month', '');
+$filterDate = getGet('date', 'all'); // Changed default from today to 'all'
+$filterMonth = getGet('month', date('Y-m')); // Default to current month
 $filterType = getGet('type', 'all');
 $filterDivision = getGet('division', 'all');
 $filterPayment = getGet('payment', 'all');
 
 // Build query with filters
-$whereClauses = ["1=1"];
-$params = [];
+$whereClauses = ["cb.branch_id = :branch_id"];
+$params = ['branch_id' => ACTIVE_BUSINESS_ID];
 
+// If date is specified and not 'all', filter by specific date
 if ($filterDate !== 'all' && !empty($filterDate)) {
     $whereClauses[] = "cb.transaction_date = :date";
     $params['date'] = $filterDate;
-} elseif (!empty($filterMonth)) {
+} 
+// Otherwise, filter by month (default to current month)
+elseif (!empty($filterMonth) && $filterMonth !== 'all') {
     $whereClauses[] = "DATE_FORMAT(cb.transaction_date, '%Y-%m') = :month";
     $params['month'] = $filterMonth;
 }
@@ -63,7 +66,7 @@ if ($filterPayment !== 'all') {
 
 $whereSQL = implode(' AND ', $whereClauses);
 
-// Get transactions
+// Get transactions - Use LEFT JOIN to handle missing references
 $transactions = $db->fetchAll(
     "SELECT 
         cb.*,
@@ -72,16 +75,16 @@ $transactions = $db->fetchAll(
         c.category_name,
         u.full_name as created_by_name
     FROM cash_book cb
-    JOIN divisions d ON cb.division_id = d.id
-    JOIN categories c ON cb.category_id = c.id
-    JOIN users u ON cb.created_by = u.id
+    LEFT JOIN divisions d ON cb.division_id = d.id AND d.branch_id = cb.branch_id
+    LEFT JOIN categories c ON cb.category_id = c.id AND c.branch_id = cb.branch_id
+    LEFT JOIN users u ON cb.created_by = u.id
     WHERE {$whereSQL}
     ORDER BY cb.transaction_date DESC, cb.transaction_time DESC",
     $params
 );
 
 // Get divisions for filter
-$divisions = $db->fetchAll("SELECT * FROM divisions WHERE is_active = 1 ORDER BY division_name");
+$divisions = $db->fetchAll("SELECT * FROM divisions WHERE is_active = 1 AND branch_id = :branch_id ORDER BY division_name", ['branch_id' => ACTIVE_BUSINESS_ID]);
 
 // Calculate totals
 $totalIncome = 0;

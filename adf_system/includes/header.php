@@ -37,24 +37,61 @@
     </style>
 </head>
 <?php
-// Load user theme from database (reliable method)
+// Load user theme from database per business (reliable method)
 $userTheme = 'dark';
 if (isset($_SESSION['user_id'])) {
     try {
         require_once __DIR__ . '/../config/database.php';
         $db = Database::getInstance();
+        
+        // DEBUG: Log what we're looking for
+        $debugInfo = "User: {$_SESSION['user_id']}, Business: " . ACTIVE_BUSINESS_ID;
+        
+        // Load theme for current business and user
         $themeResult = $db->fetchOne(
-            "SELECT theme FROM user_preferences WHERE user_id = ? LIMIT 1",
-            [$_SESSION['user_id']]
+            "SELECT theme, updated_at FROM user_preferences WHERE user_id = ? AND branch_id = ? LIMIT 1",
+            [$_SESSION['user_id'], ACTIVE_BUSINESS_ID]
         );
+        
         if ($themeResult && !empty($themeResult['theme'])) {
             $userTheme = $themeResult['theme'];
-            $_SESSION['user_theme'] = $userTheme; // Also update session
-        } elseif (isset($_SESSION['user_theme'])) {
-            $userTheme = $_SESSION['user_theme'];
+            $debugInfo .= ", Found: {$userTheme} (updated: {$themeResult['updated_at']})";
+        } else {
+            $debugInfo .= ", Not found - trying fallback";
+            
+            // Fallback: try to find any preference for this user without branch_id filter
+            $fallbackTheme = $db->fetchOne(
+                "SELECT theme FROM user_preferences WHERE user_id = ? LIMIT 1",
+                [$_SESSION['user_id']]
+            );
+            
+            if ($fallbackTheme && !empty($fallbackTheme['theme'])) {
+                $userTheme = $fallbackTheme['theme'];
+                $debugInfo .= ", Fallback: {$userTheme}";
+                
+                // Create preference for current business with this theme
+                try {
+                    $stmt = $db->getConnection()->prepare(
+                        "INSERT INTO user_preferences (user_id, branch_id, theme, language) 
+                         VALUES (?, ?, ?, 'id') 
+                         ON DUPLICATE KEY UPDATE theme = VALUES(theme)"
+                    );
+                    $stmt->execute([$_SESSION['user_id'], ACTIVE_BUSINESS_ID, $userTheme]);
+                    $debugInfo .= ", Copied to current business";
+                } catch (Exception $e) {
+                    $debugInfo .= ", Copy failed: " . $e->getMessage();
+                }
+            } else {
+                $debugInfo .= ", No fallback found, using default: dark";
+            }
         }
+        
+        // Output debug info to console
+        echo "<script>console.log('Theme Load Debug: " . addslashes($debugInfo) . "');</script>\n";
+        
     } catch (Exception $e) {
-        $userTheme = $_SESSION['user_theme'] ?? 'dark';
+        $userTheme = 'dark';
+        echo "<script>console.error('Theme Load Error: " . addslashes($e->getMessage()) . "');</script>\n";
     }
 }
 ?>
