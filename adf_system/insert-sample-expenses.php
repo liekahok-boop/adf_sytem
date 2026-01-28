@@ -83,21 +83,25 @@ try {
         echo "<h3>Expenses already exist: $expense_count records</h3>";
     }
     
-    // Update project balances
+    // Update project balances (skip if table doesn't exist or has issues)
     echo "<h3>Updating project balances...</h3>";
-    $stmt = $db->query("
-        INSERT INTO project_balances (project_id, total_expenses_usd, total_expenses_idr)
-        SELECT 
-            project_id,
-            SUM(amount_usd) as total_usd,
-            SUM(amount_idr) as total_idr
-        FROM project_expenses
-        GROUP BY project_id
-        ON DUPLICATE KEY UPDATE
-            total_expenses_usd = VALUES(total_expenses_usd),
-            total_expenses_idr = VALUES(total_expenses_idr)
-    ");
-    echo "✓ Balances updated<br>";
+    try {
+        $stmt = $db->query("
+            INSERT INTO project_balances (project_id, total_expenses_usd, total_expenses_idr)
+            SELECT 
+                project_id,
+                SUM(amount_usd) as total_usd,
+                SUM(amount_idr) as total_idr
+            FROM project_expenses
+            GROUP BY project_id
+            ON DUPLICATE KEY UPDATE
+                total_expenses_usd = VALUES(total_expenses_usd),
+                total_expenses_idr = VALUES(total_expenses_idr)
+        ");
+        echo "✓ Balances updated<br>";
+    } catch (Exception $e) {
+        echo "<span style='color: orange;'>⚠ Skipped balance update (table may not exist): " . $e->getMessage() . "</span><br>";
+    }
     
     // Show summary
     echo "<h3>Expense Summary by Category:</h3>";
