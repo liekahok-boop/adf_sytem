@@ -61,7 +61,7 @@ try {
         ORDER BY r.room_number ASC";
     $inHouseGuests = $db->fetchAll($inHouseQuery);
     
-    // 3. CHECK-IN TODAY - Only guests who actually checked in today (actual_checkin_time is today)
+    // 3. CHECK-IN TODAY - Only guests with check-in date TODAY but NOT YET checked in (status = confirmed)
     $checkInTodayQuery = "SELECT 
             b.booking_code,
             g.guest_name,
@@ -72,8 +72,8 @@ try {
         FROM bookings b
         INNER JOIN guests g ON b.guest_id = g.id
         INNER JOIN rooms r ON b.room_id = r.id
-        WHERE DATE(b.actual_checkin_time) = ?
-        ORDER BY b.actual_checkin_time DESC";
+        WHERE DATE(b.check_in_date) = ? AND b.status = 'confirmed'
+        ORDER BY b.check_in_date ASC";
     $checkInToday = $db->fetchAll($checkInTodayQuery, [$today]);
     
     // 4. CHECK-OUT TODAY

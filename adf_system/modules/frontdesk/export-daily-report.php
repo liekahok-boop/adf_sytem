@@ -41,11 +41,11 @@ try {
         FROM bookings b INNER JOIN guests g ON b.guest_id = g.id INNER JOIN rooms r ON b.room_id = r.id
         WHERE b.status = 'checked_in' ORDER BY r.room_number ASC");
     
-    // Check-in today - only those who actually checked in today
-    $checkInToday = $db->fetchAll("SELECT b.booking_code, g.guest_name, r.room_number, b.actual_checkin_time, b.check_out_date
+    // Check-in today - only those with check-in date today but NOT yet checked in (status = confirmed)
+    $checkInToday = $db->fetchAll("SELECT b.booking_code, g.guest_name, r.room_number, b.check_in_date, b.check_out_date
         FROM bookings b INNER JOIN guests g ON b.guest_id = g.id INNER JOIN rooms r ON b.room_id = r.id
-        WHERE DATE(b.actual_checkin_time) = ? AND DATE(b.check_in_date) = ?
-        ORDER BY b.actual_checkin_time DESC", [$today, $today]);
+        WHERE DATE(b.check_in_date) = ? AND b.status = 'confirmed'
+        ORDER BY b.check_in_date ASC", [$today]);
     
     // Check-out today
     $checkOutToday = $db->fetchAll("SELECT b.booking_code, g.guest_name, r.room_number, b.check_in_date, b.check_out_date
