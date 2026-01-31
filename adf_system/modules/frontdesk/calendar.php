@@ -126,6 +126,37 @@ include '../../includes/header.php';
     max-width: 100vw;
     overflow: hidden;
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Scroll Navigation Buttons */
+.scroll-nav-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.scroll-nav-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(99, 102, 241, 0.4);
+}
+
+.scroll-nav-btn:active {
+    transform: scale(0.95);
 }
 
 .calendar-header {
@@ -1338,7 +1369,8 @@ body[data-theme="light"] .btn-secondary {
 
     <!-- Calendar Grid - WRAPPED IN SCROLL CONTAINER -->
     <div class="calendar-scroll-container">
-        <div class="calendar-wrapper">
+        <button class="scroll-nav-btn" id="scrollLeftBtn" onclick="scrollCalendarLeft()" title="Scroll Left">←</button>
+        <div class="calendar-wrapper" style="flex: 1; overflow-x: auto; overflow-y: auto;">
             <div class="calendar-grid">
             <!-- Header Row -->
             <div class="calendar-grid-header">
@@ -1468,6 +1500,7 @@ body[data-theme="light"] .btn-secondary {
             ?>
         </div>
     </div>
+        <button class="scroll-nav-btn" id="scrollRightBtn" onclick="scrollCalendarRight()" title="Scroll Right">→</button>
     </div>
 
     <!-- Legend -->
@@ -1907,6 +1940,43 @@ function submitReservation(event) {
 }
 
 
+// ========================================
+// CALENDAR SCROLL FUNCTIONS
+// ========================================
+function scrollCalendarLeft() {
+    const wrapper = document.querySelector('.calendar-wrapper');
+    if (!wrapper) return;
+    
+    const columnWidth = 100; // Width of each date column
+    const currentScroll = wrapper.scrollLeft;
+    const targetScroll = currentScroll - (columnWidth * 5); // Scroll 5 columns back
+    
+    wrapper.scrollTo({
+        left: Math.max(0, targetScroll),
+        behavior: 'smooth'
+    });
+    
+    console.log('⬅️ Scroll Left');
+}
+
+function scrollCalendarRight() {
+    const wrapper = document.querySelector('.calendar-wrapper');
+    if (!wrapper) return;
+    
+    const columnWidth = 100; // Width of each date column
+    const currentScroll = wrapper.scrollLeft;
+    const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+    const targetScroll = currentScroll + (columnWidth * 5); // Scroll 5 columns forward
+    
+    wrapper.scrollTo({
+        left: Math.min(maxScroll, targetScroll),
+        behavior: 'smooth'
+    });
+    
+    console.log('➡️ Scroll Right');
+}
+
+
 function blockRoom() {
     if (!selectedDate || !selectedRoom) {
         alert('Error: Date or Room not selected');
@@ -1988,12 +2058,12 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         
         const x = e.pageX - wrapper.offsetLeft;
-        const walk = (x - startX) * 1.5;
+        const walk = (x - startX); // Drag direction: move mouse right = scroll left, move left = scroll right
         const newScroll = scrollLeft - walk;
         
         wrapper.scrollLeft = newScroll;
         
-        if (Math.abs(walk) > 3) moved = true;
+        if (Math.abs(walk) > 5) moved = true;
         
         console.log('↔️ DRAG walk:', Math.round(walk), 'scroll:', wrapper.scrollLeft);
     });
