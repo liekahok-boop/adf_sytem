@@ -651,6 +651,25 @@ body[data-theme="light"] .grid-date-cell {
     z-index: 20;
 }
 
+/* Past Booking Styling - Samar-samar Abu-abu Transparan */
+.booking-bar.booking-past {
+    opacity: 0.4 !important;
+    background: linear-gradient(135deg, #9ca3af, #d1d5db) !important;
+    border-right-color: #9ca3af !important;
+    border-left-color: #d1d5db !important;
+}
+
+.booking-bar.booking-past > span {
+    color: #6b7280 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.booking-bar.booking-past:hover {
+    opacity: 0.6 !important;
+    transform: skewX(-20deg) scaleY(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
 /* Status specific bars */
 .booking-confirmed {
     background: linear-gradient(135deg, #06b6d4, #22d3ee) !important;
@@ -1409,6 +1428,13 @@ body[data-theme="light"] .btn-secondary {
                                 
                                 $statusClass = 'booking-' . str_replace('_', '-', $booking['status']);
                                 
+                                // Check if booking is past (check-out date is before today)
+                                $today = strtotime(date('Y-m-d'));
+                                $isPastBooking = ($checkoutDate < $today);
+                                if ($isPastBooking) {
+                                    $statusClass .= ' booking-past';
+                                }
+                                
                                 // Determine color based on check-in status
                                 $isCheckedIn = ($booking['status'] === 'checked_in');
                                 $bookingColor = $isCheckedIn ? $checkedInColor : $defaultColor;
@@ -1425,7 +1451,7 @@ body[data-theme="light"] .btn-secondary {
                                     <div class="booking-bar <?php echo $statusClass; ?>" 
                                          style="background: linear-gradient(135deg, <?php echo $bookingColor['bg']; ?>, <?php echo $bookingColor['bg']; ?>dd) !important; border-right-color: <?php echo $bookingColor['bg']; ?>; border-left-color: <?php echo $bookingColor['bg']; ?>dd;"
                                          onclick="event.stopPropagation(); viewBooking(<?php echo $booking['id']; ?>, event);"
-                                         title="<?php echo $statusIcon . $guestName; ?> (<?php echo $bookingCode; ?>) - <?php echo $statusText; ?>">
+                                         title="<?php echo $statusIcon . $guestName; ?> (<?php echo $bookingCode; ?>) - <?php echo $statusText; ?><?php echo $isPastBooking ? ' [PAST]' : ''; ?>">
                                         <span><?php echo $statusIcon . $guestName; ?> • <?php echo $shortCode; ?></span>
                                     </div>
                                 </div>
@@ -1453,6 +1479,10 @@ body[data-theme="light"] .btn-secondary {
         <div class="legend-item">
             <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #34d399);"></div>
             <span class="legend-label">✓ Checked In (Active)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #9ca3af, #d1d5db); opacity: 0.4;"></div>
+            <span class="legend-label">📭 Past Booking (History)</span>
         </div>
     </div>
 
