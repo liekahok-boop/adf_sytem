@@ -110,38 +110,14 @@ header('Content-Type: text/html; charset=utf-8');
             color: #333;
         }
         
-        /* Header Layout - Similar to Financial Report */
+        /* Header Layout - Clean & Professional */
         .report-header {
             display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid rgba(99, 102, 241, 0.3);
-            align-items: center;
-        }
-        
-        .logo-section {
-            flex-shrink: 0;
-            width: 80px;
-            height: 80px;
-            background: transparent;
-            border: none;
-        }
-        
-        .logo-section img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background: transparent;
-        }
-        
-        .logo-icon {
-            width: 80px;
-            height: 80px;
-            font-size: 48pt;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #6366f1;
         }
         
         .company-info {
@@ -149,34 +125,36 @@ header('Content-Type: text/html; charset=utf-8');
         }
         
         .company-name {
-            font-size: 16pt;
+            font-size: 18pt;
             font-weight: 700;
-            color: #5a67d8;
-            margin-bottom: 3px;
-            letter-spacing: -0.3px;
+            color: #1f2937;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
         }
         
         .company-details {
             font-size: 8pt;
             color: #666;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         
         .report-info {
             text-align: right;
-            min-width: 180px;
+            min-width: 200px;
         }
         
         .report-label {
-            font-size: 9pt;
-            color: #666;
-            margin-bottom: 3px;
+            font-size: 8pt;
+            color: #999;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .report-title {
-            font-size: 12pt;
+            font-size: 14pt;
             font-weight: 700;
-            color: #5a67d8;
+            color: #6366f1;
             margin-bottom: 5px;
         }
         
@@ -186,43 +164,59 @@ header('Content-Type: text/html; charset=utf-8');
             font-weight: 600;
         }
         
-        /* Stats Container - Horizontal Layout */
+        /* Print Footer */
+        .print-footer {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            margin-right: 15mm;
+            margin-bottom: 8mm;
+            font-size: 7pt;
+            color: #999;
+            text-align: right;
+        }
+        
+        .print-footer .system-name {
+            font-weight: 600;
+            color: #6366f1;
+        }
+        
+        /* Stats Container - Compact & Clean */
         .stats-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-bottom: 15px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 8px;
+            gap: 6px;
+            margin-bottom: 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 6px;
             background: #f9fafb;
         }
         
         .stat-box {
-            flex: 1;
             text-align: center;
-            padding: 8px;
+            padding: 6px;
             border: 1px solid #e5e7eb;
-            border-radius: 6px;
+            border-radius: 5px;
             background: white;
         }
         
         .stat-label {
-            font-size: 8pt;
+            font-size: 7pt;
             color: #666;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             font-weight: 600;
         }
         
         .stat-value {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: 700;
             color: #6366f1;
         }
         
         .stat-icon {
-            font-size: 14pt;
-            margin-bottom: 2px;
+            font-size: 13pt;
+            margin-bottom: 1px;
         }
         
         .section {
@@ -611,10 +605,12 @@ header('Content-Type: text/html; charset=utf-8');
         <?php endif; ?>
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>Printed by: <?php echo htmlspecialchars($printerName); ?> (<?php echo htmlspecialchars($printerRole); ?>) | <?php echo $printTime; ?></p>
-        <p><?php echo htmlspecialchars($company['name']); ?> - Frontdesk Management System</p>
+    <!-- Footer with Watermark -->
+    <div class="print-footer">
+        <div style="margin-bottom: 4px; border-top: 1px solid #e5e7eb; padding-top: 4px;">
+            <div><span class="system-name">✓ Printed by ADF System</span></div>
+            <div style="font-size: 6pt; color: #bbb; margin-top: 2px;">Printer: <?php echo htmlspecialchars($printerName); ?> | <?php echo $printTime; ?></div>
+        </div>
     </div>
 
     <script>

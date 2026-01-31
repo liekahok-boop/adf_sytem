@@ -193,19 +193,18 @@ include '../../includes/header.php';
 
 .page-header {
     display: flex;
-    gap: 8px;
-    margin-bottom: 0.4rem;
-    padding-bottom: 6px;
-    border-bottom: 2px solid #6366f1;
-    align-items: center;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 3px solid #6366f1;
 }
 
 .hotel-name {
-    flex: 1;
-    font-size: 0.95rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #6366f1;
-    margin-bottom: 0;
+    color: #1f2937;
+    margin-bottom: 0.2rem;
 }
 
 .company-details-header {
@@ -560,6 +559,23 @@ include '../../includes/header.php';
     padding: 2rem;
     color: var(--text-secondary);
     font-style: italic;
+}
+
+/* Print Footer Watermark */
+.print-footer {
+    position: fixed;
+    bottom: 10mm;
+    right: 15mm;
+    font-size: 7pt;
+    color: #999;
+    text-align: right;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 4px;
+}
+
+.print-footer .system-name {
+    font-weight: 600;
+    color: #6366f1;
 }
 
 @media print {
@@ -986,5 +1002,11 @@ function shareToWhatsApp() {
     window.open(whatsappURL, '_blank');
 }
 </script>
+
+<!-- Print Footer Watermark -->
+<div class="print-footer">
+    <div><span class="system-name">✓ Printed by ADF System</span></div>
+    <div style="font-size: 6pt; color: #ccc; margin-top: 2px;">Generated: <?php echo date('d M Y H:i'); ?></div>
+</div>
 
 <?php include '../../includes/footer.php'; ?>
