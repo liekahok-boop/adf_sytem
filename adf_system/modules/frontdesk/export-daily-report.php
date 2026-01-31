@@ -41,10 +41,11 @@ try {
         FROM bookings b INNER JOIN guests g ON b.guest_id = g.id INNER JOIN rooms r ON b.room_id = r.id
         WHERE b.status = 'checked_in' ORDER BY r.room_number ASC");
     
-    // Check-in today
+    // Check-in today - only those who actually checked in today
     $checkInToday = $db->fetchAll("SELECT b.booking_code, g.guest_name, r.room_number, b.actual_checkin_time, b.check_out_date
         FROM bookings b INNER JOIN guests g ON b.guest_id = g.id INNER JOIN rooms r ON b.room_id = r.id
-        WHERE DATE(b.actual_checkin_time) = ? ORDER BY b.actual_checkin_time DESC", [$today]);
+        WHERE DATE(b.actual_checkin_time) = ? AND DATE(b.check_in_date) = ?
+        ORDER BY b.actual_checkin_time DESC", [$today, $today]);
     
     // Check-out today
     $checkOutToday = $db->fetchAll("SELECT b.booking_code, g.guest_name, r.room_number, b.check_in_date, b.check_out_date
@@ -320,28 +321,9 @@ header('Content-Type: text/html; charset=utf-8');
     </style>
 </head>
 <body>
-    <!-- Header with Logo - Similar to Financial Report -->
+    <!-- Header without Logo -->
     <div class="report-header">
-        <div class="logo-section">
-            <?php 
-            $displayLogo = $company['invoice_logo'] ?? $company['logo'];
-            if ($displayLogo): 
-                // Handle various logo path formats
-                if (strpos($displayLogo, 'http') === 0) {
-                    $logoPath = $displayLogo; // Already a full URL
-                } else if (strpos($displayLogo, '/') === 0) {
-                    $logoPath = $displayLogo; // Absolute web path
-                } else {
-                    // Relative path - add uploads/ prefix
-                    $logoPath = BASE_URL . '/uploads/' . (strpos($displayLogo, 'uploads') === 0 ? '' : '') . $displayLogo;
-                }
-            ?>
-                <img src="<?php echo $logoPath; ?>" alt="Logo" style="background: transparent !important;">
-            <?php else: ?>
-                <div class="logo-icon"><?php echo $company['icon']; ?></div>
-            <?php endif; ?>
-        </div>
-        <div class="company-info">
+        <div class="company-info" style="padding-left: 0;">
             <div class="company-name"><?php echo htmlspecialchars($company['name']); ?></div>
             <div class="company-details">
                 <?php if ($company['address']): ?>
@@ -428,7 +410,6 @@ header('Content-Type: text/html; charset=utf-8');
         <table>
             <thead>
                 <tr>
-                    <th>Time</th>
                     <th>Room</th>
                     <th>Guest Name</th>
                     <th>Booking Code</th>
@@ -438,7 +419,6 @@ header('Content-Type: text/html; charset=utf-8');
             <tbody>
                 <?php foreach ($checkInToday as $guest): ?>
                 <tr>
-                    <td><?php echo date('H:i', strtotime($guest['actual_checkin_time'])); ?></td>
                     <td><span class="room-badge"><?php echo $guest['room_number']; ?></span></td>
                     <td><?php echo $guest['guest_name']; ?></td>
                     <td><?php echo $guest['booking_code']; ?></td>
