@@ -1,3 +1,7 @@
+<?php
+// Load helper functions
+require_once __DIR__ . '/functions.php';
+?>
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['user_language'] ?? 'id'; ?>">
 <head>
@@ -25,11 +29,10 @@
         <?php endforeach; ?>
     <?php endif; ?>
     
-    <script>
-        // Debug: Log current theme on page load
-        console.log('Current Theme:', document.body.getAttribute('data-theme'));
-        console.log('Session Theme:', '<?php echo $_SESSION['user_theme'] ?? 'not-set'; ?>');
-    </script>
+    <!-- Inline Styles -->
+    <?php if (isset($inlineStyles)): ?>
+        <?php echo $inlineStyles; ?>
+    <?php endif; ?>
     
     <!-- Business Theme CSS -->
     <style>
@@ -39,27 +42,23 @@
 <?php
 // Load user theme from database per business (reliable method)
 $userTheme = 'dark';
+$themeError = null;
+
 if (isset($_SESSION['user_id'])) {
     try {
         require_once __DIR__ . '/../config/database.php';
         $db = Database::getInstance();
         
-        // DEBUG: Log what we're looking for
-        $debugInfo = "User: {$_SESSION['user_id']}, Business: " . ACTIVE_BUSINESS_ID;
-        
         // Load theme for current business and user
         $themeResult = $db->fetchOne(
-            "SELECT theme, updated_at FROM user_preferences WHERE user_id = ? AND branch_id = ? LIMIT 1",
+            "SELECT theme FROM user_preferences WHERE user_id = ? AND branch_id = ? LIMIT 1",
             [$_SESSION['user_id'], ACTIVE_BUSINESS_ID]
         );
         
         if ($themeResult && !empty($themeResult['theme'])) {
             $userTheme = $themeResult['theme'];
-            $debugInfo .= ", Found: {$userTheme} (updated: {$themeResult['updated_at']})";
         } else {
-            $debugInfo .= ", Not found - trying fallback";
-            
-            // Fallback: try to find any preference for this user without branch_id filter
+            // Fallback: try to find any preference for this user
             $fallbackTheme = $db->fetchOne(
                 "SELECT theme FROM user_preferences WHERE user_id = ? LIMIT 1",
                 [$_SESSION['user_id']]
@@ -67,35 +66,20 @@ if (isset($_SESSION['user_id'])) {
             
             if ($fallbackTheme && !empty($fallbackTheme['theme'])) {
                 $userTheme = $fallbackTheme['theme'];
-                $debugInfo .= ", Fallback: {$userTheme}";
-                
-                // Create preference for current business with this theme
-                try {
-                    $stmt = $db->getConnection()->prepare(
-                        "INSERT INTO user_preferences (user_id, branch_id, theme, language) 
-                         VALUES (?, ?, ?, 'id') 
-                         ON DUPLICATE KEY UPDATE theme = VALUES(theme)"
-                    );
-                    $stmt->execute([$_SESSION['user_id'], ACTIVE_BUSINESS_ID, $userTheme]);
-                    $debugInfo .= ", Copied to current business";
-                } catch (Exception $e) {
-                    $debugInfo .= ", Copy failed: " . $e->getMessage();
-                }
-            } else {
-                $debugInfo .= ", No fallback found, using default: dark";
             }
         }
         
-        // Output debug info to console
-        echo "<script>console.log('Theme Load Debug: " . addslashes($debugInfo) . "');</script>\n";
-        
     } catch (Exception $e) {
         $userTheme = 'dark';
-        echo "<script>console.error('Theme Load Error: " . addslashes($e->getMessage()) . "');</script>\n";
+        $themeError = $e->getMessage();
+        // Don't die, just use default theme
     }
 }
 ?>
 <body data-theme="<?php echo htmlspecialchars($userTheme); ?>" data-business="<?php echo ACTIVE_BUSINESS_ID; ?>" data-business-type="<?php echo BUSINESS_TYPE; ?>">
+<?php if ($themeError): ?>
+    <!-- Theme Load Warning: <?php echo htmlspecialchars($themeError); ?> -->
+<?php endif; ?>
     <div class="main-wrapper">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -185,11 +169,57 @@ if (isset($_SESSION['user_id'])) {
                     <?php endif; ?>
                     
                     <?php if ($auth->hasPermission('frontdesk') && isModuleEnabled('frontdesk')): ?>
-                    <li class="nav-item">
-                        <a href="<?php echo BASE_URL; ?>/modules/frontdesk/" class="nav-link <?php echo activeMenu('frontdesk'); ?>">
+                    <li class="nav-item has-submenu <?php echo (strpos($_SERVER['REQUEST_URI'], '/frontdesk/') !== false) ? 'open' : ''; ?>">
+                        <a href="javascript:void(0)" class="nav-link dropdown-toggle <?php echo activeMenu('frontdesk'); ?>">
                             <i data-feather="home" class="nav-icon"></i>
                             <span>Front Desk</span>
                         </a>
+                        <ul class="submenu">
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/dashboard.php" class="submenu-link <?php echo activeMenu('dashboard.php'); ?>">
+                                    <i data-feather="layout" class="submenu-icon"></i>
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/reservasi.php" class="submenu-link <?php echo activeMenu('reservasi.php'); ?>">
+                                    <i data-feather="calendar" class="submenu-icon"></i>
+                                    <span>Reservasi</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/calendar.php" class="submenu-link <?php echo activeMenu('calendar.php'); ?>">
+                                    <i data-feather="grid" class="submenu-icon"></i>
+                                    <span>Calendar View</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/in-house.php" class="submenu-link <?php echo activeMenu('in-house.php'); ?>">
+                                    <i data-feather="users" class="submenu-icon"></i>
+                                    <span>Tamu In House</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/breakfast.php" 
+                                   class="submenu-link <?php echo activeMenu('breakfast.php'); ?>"
+                                   onclick="console.log('Breakfast link clicked!'); return true;">
+                                    <i data-feather="coffee" class="submenu-icon"></i>
+                                    <span>Breakfast Order</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/laporan.php" class="submenu-link <?php echo activeMenu('laporan.php'); ?>">
+                                    <i data-feather="file-text" class="submenu-icon"></i>
+                                    <span>Laporan</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/frontdesk/settings.php" class="submenu-link <?php echo activeMenu('settings.php'); ?>">
+                                    <i data-feather="settings" class="submenu-icon"></i>
+                                    <span>Pengaturan</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <?php endif; ?>
                     
@@ -270,14 +300,12 @@ if (isset($_SESSION['user_id'])) {
                     <?php endif; ?>
                     
                     <!-- Investor Menu -->
-                    <?php if ($auth->hasPermission('investor')): ?>
                     <li class="nav-item">
                         <a href="<?php echo BASE_URL; ?>/modules/investor/" class="nav-link <?php echo activeMenu('investor'); ?>">
                             <i data-feather="briefcase" class="nav-icon"></i>
                             <span>Investor</span>
                         </a>
                     </li>
-                    <?php endif; ?>
                     
                     <!-- Project Menu -->
                     <?php if ($auth->hasPermission('project')): ?>

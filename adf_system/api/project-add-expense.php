@@ -51,7 +51,7 @@ try {
         'description' => $_POST['description'] ?? null,
         'reference_no' => $_POST['reference_no'] ?? null,
         'payment_method' => $_POST['payment_method'] ?? 'cash',
-        'status' => $_POST['status'] ?? 'draft'
+        'status' => 'paid'  // Auto-approved & paid, langsung potong kas investor
     ];
 
     // Validate required fields
@@ -64,17 +64,16 @@ try {
         exit;
     }
 
-    // Add expense (if approved, investor balance will be auto-deducted)
+    // Add expense (status paid, investor balance will be auto-deducted)
     $result = $project_manager->addExpense(
         $data['project_id'],
         $data,
         $_SESSION['user_id']
     );
 
-    if ($result['success'] && $data['status'] === 'approved') {
-        // If expense was approved, investor balance is already updated
-        // Log the deduction
-        error_log('Expense approved - Investor balance auto-deducted for amount: ' . $data['amount_idr']);
+    if ($result['success']) {
+        // Expense was paid - Investor balance is automatically deducted by ProjectManager
+        error_log('Expense paid - Investor balance auto-deducted: Rp ' . number_format($data['amount_idr'], 0, ',', '.'));
     }
     
     http_response_code($result['success'] ? 201 : 400);

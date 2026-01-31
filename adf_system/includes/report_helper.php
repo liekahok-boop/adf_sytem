@@ -63,19 +63,19 @@ function generateReportHeader($title, $subtitle = '', $dateRange = '', $logoPath
     // Logo should be a browser-accessible URL, not a filesystem path
     if ($displayLogo && (strpos($displayLogo, 'http') === 0 || strpos($displayLogo, '/') === 0)) {
         // It's already a URL or absolute web path - use as-is
-        $logoHtml = '<img src="' . htmlspecialchars($displayLogo) . '" alt="Logo" style="width: 100px; height: 100px; object-fit: contain;">';
+        $logoHtml = '<img src="' . htmlspecialchars($displayLogo) . '" alt="Logo" style="width: 120px; height: 120px; object-fit: contain;">';
     } else {
         // Fallback to icon emoji
-        $logoHtml = '<div style="width: 100px; height: 100px; font-size: 56px; display: flex; align-items: center; justify-content: center;">' . $company['icon'] . '</div>';
+        $logoHtml = '<div style="width: 120px; height: 120px; font-size: 64px; display: flex; align-items: center; justify-content: center;">' . $company['icon'] . '</div>';
     }
     
     $html = '
-    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid ' . $company['color'] . ';">
+    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid ' . $company['color'] . '; align-items: center;">
         <div style="flex-shrink: 0;">
             ' . $logoHtml . '
         </div>
         <div style="flex: 1;">
-            <div style="font-size: 20px; font-weight: 800; color: ' . $company['color'] . '; margin-bottom: 0.15rem; letter-spacing: -0.3px;">
+            <div style="font-size: 22px; font-weight: 800; color: ' . $company['color'] . '; margin-bottom: 0.15rem; letter-spacing: -0.3px;">
                 ' . htmlspecialchars($company['name']) . '
             </div>
             <div style="font-size: 9px; color: #666; line-height: 1.4;">
@@ -121,12 +121,43 @@ function generateSummaryCard($label, $value, $color = '#10b981', $icon = '') {
 /**
  * Generate Report Footer with timestamp and page info
  */
-function generateReportFooter() {
+function generateReportFooter($userName = '') {
     $company = getCompanyInfo();
+    $printDate = date('d F Y, H:i:s');
+    $currentYear = date('Y');
+    
+    // Get current user if not provided
+    if (empty($userName)) {
+        if (isset($_SESSION['user_full_name'])) {
+            $userName = $_SESSION['user_full_name'];
+        } elseif (isset($_SESSION['user_name'])) {
+            $userName = $_SESSION['user_name'];
+        } else {
+            $userName = 'System';
+        }
+    }
     
     return '
-    <div style="margin-top: 0.1rem; padding-top: 0.08rem; border-top: 0.8px solid #ddd; text-align: center; font-size: 5px; color: #999;">
-        <div>' . htmlspecialchars($company['name']) . '</div>
+    <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1.5px solid #e5e7eb;">
+        <table style="width: 100%; font-size: 7.5px; color: #666;">
+            <tr>
+                <td style="text-align: left; padding: 0.3rem 0;">
+                    <div style="font-weight: 600; color: #333; margin-bottom: 0.15rem;">💼 Dicetak oleh:</div>
+                    <div>' . htmlspecialchars($userName) . '</div>
+                </td>
+                <td style="text-align: center; padding: 0.3rem 0;">
+                    <div style="font-weight: 600; color: #333; margin-bottom: 0.15rem;">📅 Tanggal Cetak:</div>
+                    <div>' . $printDate . '</div>
+                </td>
+                <td style="text-align: right; padding: 0.3rem 0;">
+                    <div style="font-weight: 600; color: #333; margin-bottom: 0.15rem;">👨‍💻 Developer:</div>
+                    <div>Arief_adfsystem management © ' . $currentYear . '</div>
+                </td>
+            </tr>
+        </table>
+        <div style="text-align: center; padding-top: 0.3rem; border-top: 1px solid #f3f4f6; font-size: 7px; color: #999; margin-top: 0.3rem;">
+            ' . htmlspecialchars($company['name']) . ' - Sistem Manajemen Keuangan
+        </div>
     </div>
     ';
 }

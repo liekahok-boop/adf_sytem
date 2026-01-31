@@ -63,6 +63,97 @@ foreach ($dailySummary as $day) {
     $grandTransactions += $day['transaction_count'];
 }
 
+// ============================================
+// GET DETAIL TRANSACTIONS FOR PRINT
+// ============================================
+
+// Get income details from cash book
+$incomeDetails = $db->fetchAll("
+    SELECT 
+        cb.id,
+        cb.transaction_date,
+        cb.transaction_time,
+        cb.description,
+        cb.amount,
+        d.division_name,
+        c.category_name
+    FROM cash_book cb
+    LEFT JOIN divisions d ON cb.division_id = d.id
+    LEFT JOIN categories c ON cb.category_id = c.id
+    WHERE $whereClause AND cb.transaction_type = 'income'
+    ORDER BY cb.transaction_date, cb.transaction_time
+", $params);
+
+// Get expense details from cash book
+$expenseDetails = $db->fetchAll("
+    SELECT 
+        cb.id,
+        cb.transaction_date,
+        cb.transaction_time,
+        cb.description,
+        cb.amount,
+        d.division_name,
+        c.category_name,
+        'cashbook' as source
+    FROM cash_book cb
+    LEFT JOIN divisions d ON cb.division_id = d.id
+    LEFT JOIN categories c ON cb.category_id = c.id
+    WHERE $whereClause AND cb.transaction_type = 'expense'
+    ORDER BY cb.transaction_date, cb.transaction_time
+", $params);
+
+// Get expense details from Purchase Orders (Procurement)
+$purchaseDetails = [];
+try {
+    $poWhereConditions = ["ph.invoice_date BETWEEN :start_date AND :end_date"];
+    $poParams = [
+        'start_date' => $start_date,
+        'end_date' => $end_date
+    ];
+    
+    if ($division_id > 0) {
+        $poWhereConditions[] = "pd.division_id = :division_id";
+        $poParams['division_id'] = $division_id;
+    }
+    
+    $poWhereClause = implode(' AND ', $poWhereConditions);
+    
+    $purchaseDetails = $db->fetchAll("
+        SELECT 
+            ph.invoice_number,
+            ph.invoice_date as transaction_date,
+            '00:00:00' as transaction_time,
+            pd.item_name as description,
+            pd.subtotal as amount,
+            d.division_name,
+            'Pembelian' as category_name,
+            'purchase_order' as source,
+            s.supplier_name,
+            pd.quantity,
+            pd.unit_price
+        FROM purchases_detail pd
+        INNER JOIN purchases_header ph ON pd.invoice_number = ph.invoice_number
+        INNER JOIN divisions d ON pd.division_id = d.id
+        LEFT JOIN suppliers s ON ph.supplier_id = s.supplier_id
+        WHERE $poWhereClause
+        ORDER BY ph.invoice_date, pd.item_name
+    ", $poParams);
+} catch (Exception $e) {
+    // Procurement tables might not exist
+}
+
+// Merge all expenses (from cashbook and PO)
+$allExpenseDetails = array_merge($expenseDetails, $purchaseDetails);
+
+// Sort by date and time
+usort($allExpenseDetails, function($a, $b) {
+    $dateCompare = strcmp($a['transaction_date'], $b['transaction_date']);
+    if ($dateCompare === 0) {
+        return strcmp($a['transaction_time'], $b['transaction_time']);
+    }
+    return $dateCompare;
+});
+
 include '../../includes/header.php';
 
 // Get company info for print
@@ -384,6 +475,201 @@ function closePDFPreview() {
         <?php endif; ?>
     </div>
 
+<!-- Detail Transaksi Section (Screen View) -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1.5rem;">
+    
+    <!-- Detail Pemasukan -->
+    <div class="card">
+        <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 1rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin: -1px -1px 0 -1px;">
+            <h3 style="margin: 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-feather="trending-up" style="width: 20px; height: 20px;"></i>
+                💰 DETAIL PEMASUKAN
+            </h3>
+        </div>
+        
+        <div style="padding: 1rem;">
+            <?php if (!empty($incomeDetails)): ?>
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <table class="table" style="font-size: 0.813rem;">
+                        <thead style="position: sticky; top: 0; background: var(--bg-secondary); z-index: 1;">
+                            <tr>
+                                <th style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Tanggal</th>
+                                <th style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Divisi</th>
+                                <th style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Kategori</th>
+                                <th class="text-right" style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $prevDate = '';
+                            foreach ($incomeDetails as $income): 
+                                $currentDate = date('d/m/Y', strtotime($income['transaction_date']));
+                                $isNewDate = ($currentDate !== $prevDate);
+                                $prevDate = $currentDate;
+                            ?>
+                                <tr style="<?php echo $isNewDate ? 'border-top: 2px solid var(--bg-tertiary);' : ''; ?>">
+                                    <td style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <?php if ($isNewDate): ?>
+                                            <div style="font-weight: 600; color: var(--text-primary);">
+                                                <?php echo $currentDate; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div style="font-size: 0.688rem; color: var(--text-muted);">
+                                            <?php echo date('H:i', strtotime($income['transaction_time'])); ?>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <div style="font-weight: 600; color: var(--text-primary);">
+                                            <?php echo $income['division_name'] ?? '-'; ?>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <div style="font-weight: 600; color: var(--text-primary);">
+                                            <?php echo $income['category_name'] ?? 'Lainnya'; ?>
+                                        </div>
+                                        <?php if (!empty($income['description'])): ?>
+                                            <div style="font-size: 0.688rem; color: var(--text-muted); margin-top: 0.125rem;">
+                                                <?php echo htmlspecialchars(substr($income['description'], 0, 50)); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-right" style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <div style="font-weight: 700; color: var(--success); font-size: 0.875rem;">
+                                            <?php echo formatCurrency($income['amount']); ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot style="position: sticky; bottom: 0; background: var(--bg-secondary); border-top: 2px solid var(--success);">
+                            <tr style="font-weight: 700;">
+                                <td colspan="3" class="text-right" style="padding: 0.75rem;">TOTAL PEMASUKAN:</td>
+                                <td class="text-right" style="padding: 0.75rem; color: var(--success); font-size: 1rem;">
+                                    <?php echo formatCurrency($grandIncome); ?>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <i data-feather="inbox" style="width: 48px; height: 48px; margin-bottom: 1rem; color: var(--text-muted);"></i>
+                    <p>Tidak ada data pemasukan untuk periode ini</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    
+    <!-- Detail Pengeluaran -->
+    <div class="card">
+        <div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 1rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin: -1px -1px 0 -1px;">
+            <h3 style="margin: 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-feather="trending-down" style="width: 20px; height: 20px;"></i>
+                💸 DETAIL PENGELUARAN
+            </h3>
+        </div>
+        
+        <div style="padding: 1rem;">
+            <?php if (!empty($allExpenseDetails)): ?>
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <table class="table" style="font-size: 0.813rem;">
+                        <thead style="position: sticky; top: 0; background: var(--bg-secondary); z-index: 1;">
+                            <tr>
+                                <th style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Tanggal</th>
+                                <th style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Divisi</th>
+                                <th style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Kategori/Item</th>
+                                <th class="text-right" style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $prevDate = '';
+                            foreach ($allExpenseDetails as $expense): 
+                                $currentDate = date('d/m/Y', strtotime($expense['transaction_date']));
+                                $isNewDate = ($currentDate !== $prevDate);
+                                $prevDate = $currentDate;
+                                $isPO = (isset($expense['source']) && $expense['source'] === 'purchase_order');
+                            ?>
+                                <tr style="<?php echo $isNewDate ? 'border-top: 2px solid var(--bg-tertiary);' : ''; ?>">
+                                    <td style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <?php if ($isNewDate): ?>
+                                            <div style="font-weight: 600; color: var(--text-primary);">
+                                                <?php echo $currentDate; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!$isPO): ?>
+                                            <div style="font-size: 0.688rem; color: var(--text-muted);">
+                                                <?php echo date('H:i', strtotime($expense['transaction_time'])); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <div style="font-weight: 600; color: var(--text-primary);">
+                                            <?php echo $expense['division_name'] ?? '-'; ?>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <div style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.25rem;">
+                                            <?php if ($isPO): ?>
+                                                <span style="background: #f59e0b; color: white; padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.625rem; font-weight: 700;">PO</span>
+                                            <?php endif; ?>
+                                            <?php echo $expense['category_name'] ?? 'Lainnya'; ?>
+                                        </div>
+                                        <?php if (!empty($expense['description'])): ?>
+                                            <div style="font-size: 0.688rem; color: var(--text-muted); margin-top: 0.125rem;">
+                                                <?php 
+                                                if ($isPO) {
+                                                    echo htmlspecialchars(substr($expense['description'], 0, 40));
+                                                    if (isset($expense['quantity'])) {
+                                                        echo ' <span style="color: var(--text-primary); font-weight: 600;">(' . $expense['quantity'] . ' pcs @ ' . formatCurrency($expense['unit_price']) . ')</span>';
+                                                    }
+                                                } else {
+                                                    echo htmlspecialchars(substr($expense['description'], 0, 50));
+                                                }
+                                                ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($isPO && !empty($expense['supplier_name'])): ?>
+                                            <div style="font-size: 0.688rem; color: var(--text-muted); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+                                                <span style="color: #f59e0b;">📦</span>
+                                                Supplier: <strong><?php echo htmlspecialchars($expense['supplier_name']); ?></strong>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($isPO && !empty($expense['invoice_number'])): ?>
+                                            <div style="font-size: 0.625rem; color: var(--text-muted); margin-top: 0.125rem;">
+                                                Invoice: <?php echo htmlspecialchars($expense['invoice_number']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-right" style="padding: 0.5rem 0.75rem; vertical-align: top;">
+                                        <div style="font-weight: 700; color: var(--danger); font-size: 0.875rem;">
+                                            <?php echo formatCurrency($expense['amount']); ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot style="position: sticky; bottom: 0; background: var(--bg-secondary); border-top: 2px solid var(--danger);">
+                            <tr style="font-weight: 700;">
+                                <td colspan="3" class="text-right" style="padding: 0.75rem;">TOTAL PENGELUARAN:</td>
+                                <td class="text-right" style="padding: 0.75rem; color: var(--danger); font-size: 1rem;">
+                                    <?php echo formatCurrency($grandExpense); ?>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <i data-feather="inbox" style="width: 48px; height: 48px; margin-bottom: 1rem; color: var(--text-muted);"></i>
+                    <p>Tidak ada data pengeluaran untuk periode ini</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    
+</div>
+
 <script>
     feather.replace();
     
@@ -408,6 +694,11 @@ function closePDFPreview() {
         a.click();
         window.URL.revokeObjectURL(url);
     }
+    
+    // Re-initialize feather icons after page load
+    document.addEventListener('DOMContentLoaded', function() {
+        feather.replace();
+    });
 </script>
 
 <style>
@@ -554,19 +845,19 @@ function closePDFPreview() {
         </div>
         
         <!-- Daily Summary Table -->
-        <h2 style="font-size: 10px; font-weight: 700; color: #1f2937; margin-bottom: 0.4rem; page-break-after: avoid;">
+        <h2 style="font-size: 11px; font-weight: 700; color: #1f2937; margin-bottom: 0.4rem; page-break-after: avoid;">
             Ringkasan Per Hari
         </h2>
         
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 0.6rem; font-size: 8px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 0.6rem; font-size: 10px;">
             <thead>
                 <tr style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); font-weight: 700;">
-                    <th style="padding: 3px 4px; text-align: left; border-bottom: 1px solid #d1d5db;">Tanggal</th>
-                    <th style="padding: 3px 4px; text-align: left; border-bottom: 1px solid #d1d5db;">Hari</th>
-                    <th style="padding: 3px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Pemasukan</th>
-                    <th style="padding: 3px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Pengeluaran</th>
-                    <th style="padding: 3px 4px; text-align: right; border-bottom: 1px solid #d1d5db;">Net Balance</th>
-                    <th style="padding: 3px 4px; text-align: center; border-bottom: 1px solid #d1d5db;">Transaksi</th>
+                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #d1d5db;">Tanggal</th>
+                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #d1d5db;">Hari</th>
+                    <th style="padding: 4px 5px; text-align: right; border-bottom: 1px solid #d1d5db;">Pemasukan</th>
+                    <th style="padding: 4px 5px; text-align: right; border-bottom: 1px solid #d1d5db;">Pengeluaran</th>
+                    <th style="padding: 4px 5px; text-align: right; border-bottom: 1px solid #d1d5db;">Net Balance</th>
+                    <th style="padding: 4px 5px; text-align: center; border-bottom: 1px solid #d1d5db;">Transaksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -579,48 +870,171 @@ function closePDFPreview() {
                     $rowCount++;
                 ?>
                     <tr style="background: <?php echo $bgColor; ?>;">
-                        <td style="padding: 5px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">
+                        <td style="padding: 6px 9px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">
                             <?php echo date('d/m/Y', strtotime($day['date'])); ?>
                         </td>
-                        <td style="padding: 5px 8px; border-bottom: 1px solid #e5e7eb;">
+                        <td style="padding: 6px 9px; border-bottom: 1px solid #e5e7eb;">
                             <?php echo $dayNames[date('w', strtotime($day['date']))]; ?>
                         </td>
-                        <td style="padding: 5px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #10b981; font-weight: 600;">
+                        <td style="padding: 6px 9px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #10b981; font-weight: 600;">
                             Rp <?php echo number_format($day['total_income'], 0, ',', '.'); ?>
                         </td>
-                        <td style="padding: 5px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ef4444; font-weight: 600;">
+                        <td style="padding: 6px 9px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #ef4444; font-weight: 600;">
                             Rp <?php echo number_format($day['total_expense'], 0, ',', '.'); ?>
                         </td>
-                        <td style="padding: 5px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; color: <?php echo $netColor; ?>; font-weight: 700;">
+                        <td style="padding: 6px 9px; border-bottom: 1px solid #e5e7eb; text-align: right; color: <?php echo $netColor; ?>; font-weight: 700;">
                             Rp <?php echo number_format($day['net_balance'], 0, ',', '.'); ?>
                         </td>
-                        <td style="padding: 5px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                        <td style="padding: 6px 9px; border-bottom: 1px solid #e5e7eb; text-align: center;">
                             <?php echo $day['transaction_count']; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
             <tfoot>
-                <tr style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); font-weight: 800;">
-                    <td colspan="2" style="padding: 3px 4px; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db;">TOTAL</td>
-                    <td style="padding: 3px 4px; text-align: right; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; color: #10b981;">
+                <tr style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); font-weight: 800; font-size: 11px;">
+                    <td colspan="2" style="padding: 5px 6px; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db;">TOTAL</td>
+                    <td style="padding: 5px 6px; text-align: right; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; color: #10b981;">
                         Rp <?php echo number_format($grandIncome, 0, ',', '.'); ?>
                     </td>
-                    <td style="padding: 3px 4px; text-align: right; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; color: #ef4444;">
+                    <td style="padding: 5px 6px; text-align: right; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; color: #ef4444;">
                         Rp <?php echo number_format($grandExpense, 0, ',', '.'); ?>
                     </td>
-                    <td style="padding: 3px 4px; text-align: right; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; color: <?php echo $grandNet >= 0 ? '#10b981' : '#ef4444'; ?>;">
+                    <td style="padding: 5px 6px; text-align: right; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; color: <?php echo $grandNet >= 0 ? '#10b981' : '#ef4444'; ?>;">
                         Rp <?php echo number_format($grandNet, 0, ',', '.'); ?>
                     </td>
-                    <td style="padding: 3px 4px; text-align: center; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db;">
+                    <td style="padding: 5px 6px; text-align: center; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db;">
                         <?php echo $grandTransactions; ?>
                     </td>
                 </tr>
             </tfoot>
         </table>
         
+        <!-- DETAIL TRANSAKSI -->
+        <div style="margin-top: 1rem; page-break-inside: avoid;">
+            <h2 style="font-size: 10px; font-weight: 700; color: #1f2937; margin-bottom: 0.5rem;">
+                📋 Detail Transaksi Periode
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                
+                <!-- Detail Pemasukan -->
+                <div style="border: 2px solid #10b981; border-radius: 6px; background: #f0fdf4; padding: 0.4rem;">
+                    <div style="background: #10b981; color: white; padding: 0.3rem 0.5rem; margin: -0.4rem -0.4rem 0.4rem -0.4rem; border-radius: 4px 4px 0 0;">
+                        <h3 style="margin: 0; font-size: 12px; font-weight: 700;">💰 DETAIL PEMASUKAN</h3>
+                    </div>
+                    
+                    <?php if (!empty($incomeDetails)): ?>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <thead>
+                                <tr style="background: rgba(16, 185, 129, 0.1);">
+                                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #10b981; font-size: 9px;">Tanggal</th>
+                                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #10b981; font-size: 9px;">Divisi</th>
+                                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #10b981; font-size: 9px;">Kategori</th>
+                                    <th style="padding: 4px 5px; text-align: right; border-bottom: 1px solid #10b981; font-size: 9px; width: 65px;">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($incomeDetails as $income): ?>
+                                    <tr>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #dcfce7; font-size: 10px;">
+                                            <?php echo date('d/m', strtotime($income['transaction_date'])); ?>
+                                        </td>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #dcfce7; font-size: 10px;">
+                                            <?php echo substr($income['division_name'] ?? '-', 0, 10); ?>
+                                        </td>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #dcfce7; font-size: 10px;">
+                                            <div style="font-weight: 600;"><?php echo substr($income['category_name'] ?? 'Lainnya', 0, 12); ?></div>
+                                            <?php if (!empty($income['description'])): ?>
+                                                <div style="color: #666; font-size: 8.5px;"><?php echo substr($income['description'], 0, 25); ?></div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #dcfce7; text-align: right; font-weight: 600; color: #10b981; font-size: 10px;">
+                                            <?php echo number_format($income['amount'], 0, ',', '.'); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <tr style="background: rgba(16, 185, 129, 0.15); font-weight: bold;">
+                                    <td colspan="3" style="padding: 5px 6px; text-align: right; border-top: 2px solid #10b981; font-size: 11px;">TOTAL PEMASUKAN:</td>
+                                    <td style="padding: 5px 6px; text-align: right; color: #10b981; border-top: 2px solid #10b981; font-size: 11px;">
+                                        <?php echo number_format($grandIncome, 0, ',', '.'); ?>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 1rem; color: #999; font-size: 7px;">Tidak ada pemasukan</div>
+                    <?php endif; ?>
+                </div>
+                
+                <!-- Detail Pengeluaran -->
+                <div style="border: 2px solid #ef4444; border-radius: 6px; background: #fef2f2; padding: 0.4rem;">
+                    <div style="background: #ef4444; color: white; padding: 0.3rem 0.5rem; margin: -0.4rem -0.4rem 0.4rem -0.4rem; border-radius: 4px 4px 0 0;">
+                        <h3 style="margin: 0; font-size: 12px; font-weight: 700;">💸 DETAIL PENGELUARAN</h3>
+                    </div>
+                    
+                    <?php if (!empty($allExpenseDetails)): ?>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <thead>
+                                <tr style="background: rgba(239, 68, 68, 0.1);">
+                                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #ef4444; font-size: 9px;">Tanggal</th>
+                                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #ef4444; font-size: 9px;">Divisi</th>
+                                    <th style="padding: 4px 5px; text-align: left; border-bottom: 1px solid #ef4444; font-size: 9px;">Kategori/Item</th>
+                                    <th style="padding: 4px 5px; text-align: right; border-bottom: 1px solid #ef4444; font-size: 9px; width: 65px;">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($allExpenseDetails as $expense): ?>
+                                    <tr>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #fee2e2; font-size: 10px;">
+                                            <?php echo date('d/m', strtotime($expense['transaction_date'])); ?>
+                                        </td>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #fee2e2; font-size: 10px;">
+                                            <?php echo substr($expense['division_name'] ?? '-', 0, 10); ?>
+                                        </td>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #fee2e2; font-size: 10px;">
+                                            <div style="font-weight: 600;"><?php echo substr($expense['category_name'] ?? 'Lainnya', 0, 12); ?></div>
+                                            <?php if (!empty($expense['description'])): ?>
+                                                <div style="color: #666; font-size: 8.5px;">
+                                                    <?php 
+                                                    if (isset($expense['source']) && $expense['source'] === 'purchase_order') {
+                                                        echo substr($expense['description'], 0, 15);
+                                                        if (isset($expense['quantity'])) {
+                                                            echo ' (' . $expense['quantity'] . 'x)';
+                                                        }
+                                                    } else {
+                                                        echo substr($expense['description'], 0, 20);
+                                                    }
+                                                    ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if (isset($expense['source']) && $expense['source'] === 'purchase_order' && !empty($expense['supplier_name'])): ?>
+                                                <div style="color: #999; font-size: 8px;">📦 <?php echo substr($expense['supplier_name'], 0, 15); ?></div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="padding: 4px 5px; border-bottom: 1px solid #fee2e2; text-align: right; font-weight: 600; color: #ef4444; font-size: 10px;">
+                                            <?php echo number_format($expense['amount'], 0, ',', '.'); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <tr style="background: rgba(239, 68, 68, 0.15); font-weight: bold;">
+                                    <td colspan="3" style="padding: 5px 6px; text-align: right; border-top: 2px solid #ef4444; font-size: 11px;">TOTAL PENGELUARAN:</td>
+                                    <td style="padding: 5px 6px; text-align: right; color: #ef4444; border-top: 2px solid #ef4444; font-size: 11px;">
+                                        <?php echo number_format($grandExpense, 0, ',', '.'); ?>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 1rem; color: #999; font-size: 7px;">Tidak ada pengeluaran</div>
+                    <?php endif; ?>
+                </div>
+                
+            </div>
+        </div>
+        
         <?php echo generateSignatureSection(); ?>
-        <?php echo generateReportFooter(); ?>
+        <?php echo generateReportFooter($currentUser['full_name'] ?? $currentUser['user_name'] ?? 'Administrator'); ?>
     </div>
 </div>
 

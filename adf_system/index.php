@@ -637,11 +637,14 @@ if ($trialStatus) {
     
     // Dynamic chart colors based on theme
     function getChartTextColor() {
-        return getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+        const color = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+        return color || '#666';
     }
     
     function getLegendTextColor() {
-        return getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || 
+                       window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return isDark ? '#fff' : '#000';
     }
     
     Chart.defaults.color = getChartTextColor();
@@ -683,17 +686,17 @@ if ($trialStatus) {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        padding: 12,
+                        padding: 15,
                         font: { 
-                            size: 11, 
-                            weight: '600',
+                            size: 14, 
+                            weight: 'bold',
                             family: "'Inter', sans-serif"
                         },
                         color: getLegendTextColor(),
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        boxWidth: 10,
-                        boxHeight: 10
+                        boxWidth: 12,
+                        boxHeight: 12
                     }
                 },
                 tooltip: {
@@ -763,13 +766,16 @@ if ($trialStatus) {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        padding: 12,
-                        font: { size: 11, weight: '600' },
+                        padding: 15,
+                        font: { 
+                            size: 14, 
+                            weight: 'bold' 
+                        },
                         color: getLegendTextColor(),
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        boxWidth: 10,
-                        boxHeight: 10
+                        boxWidth: 12,
+                        boxHeight: 12
                     }
                 },
                 tooltip: {
@@ -955,14 +961,15 @@ if ($trialStatus) {
                     labels: {
                         padding: 20,
                         font: { 
-                            size: 13, 
-                            weight: '700',
+                            size: 14, 
+                            weight: 'bold',
                             family: "'Inter', sans-serif"
                         },
+                        color: getLegendTextColor(),
                         usePointStyle: true,
                         pointStyle: 'circle',
-                        boxWidth: 8,
-                        boxHeight: 8
+                        boxWidth: 10,
+                        boxHeight: 10
                     }
                 },
                 tooltip: {
@@ -1419,7 +1426,9 @@ if ($trialStatus) {
                     ticks: {
                         callback: function(value) {
                             return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
-                        }
+                        },
+                        font: { size: 12, weight: '600' },
+                        color: getChartTextColor()
                     }
                 },
                 y: {
@@ -1427,8 +1436,8 @@ if ($trialStatus) {
                         display: false
                     },
                     ticks: {
-                        font: { size: 11 },
-                        color: getChartTextColor()
+                        font: { size: 12, weight: '600' },
+                        color: getLegendTextColor()
                     }
                 }
             }

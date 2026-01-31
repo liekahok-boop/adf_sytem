@@ -164,14 +164,14 @@ class Auth {
             // Use existing database connection from $this->db
             $conn = $this->db->getConnection();
             
-            // Query user_permissions table
-            $query = "SELECT COUNT(*) as count FROM user_permissions WHERE user_id = ? AND permission = ?";
+            // Query user_permissions table - correct column is 'permission' not 'module_name'
+            $query = "SELECT * FROM user_permissions WHERE user_id = ? AND permission = ? LIMIT 1";
             $stmt = $conn->prepare($query);
             $stmt->execute([$user_id, $module]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             // If found in database, return true
-            if ($result && intval($result['count']) > 0) {
+            if ($result) {
                 return true;
             }
         } catch (Exception $e) {

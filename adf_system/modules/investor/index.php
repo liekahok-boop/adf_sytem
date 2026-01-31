@@ -1,1030 +1,889 @@
 <?php
-// Enable error display for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Define APP_ACCESS constant
 define('APP_ACCESS', true);
-
-// Get base path
 $base_path = dirname(dirname(dirname(__FILE__)));
 
 require_once $base_path . '/config/config.php';
 require_once $base_path . '/config/database.php';
 require_once $base_path . '/includes/auth.php';
-require_once $base_path . '/includes/InvestorManager.php';
-require_once $base_path . '/includes/ProjectManager.php';
 
-// Check permission
 $auth = new Auth();
 $auth->requireLogin();
 
-if (!$auth->hasPermission('investor')) {
-    header('HTTP/1.1 403 Forbidden');
-    echo "You do not have permission to access this module.";
-    exit;
-}
-
 $db = Database::getInstance()->getConnection();
-$investor = new InvestorManager($db);
-$project = new ProjectManager($db);
 
-// Get all investors
-$investors = $investor->getAllInvestors();
-
-// Get all projects with expenses
-$projects = $project->getAllProjects();
-
-// Get recent expenses (last 10)
-$recent_expenses = [];
+// Get investors
 try {
-    $stmt = $db->prepare("
-        SELECT pe.*, p.name as project_name 
-        FROM project_expenses pe
-        JOIN projects p ON pe.project_id = p.id
-        ORDER BY pe.expense_date DESC, pe.created_at DESC
-        LIMIT 10
-    ");
-    $stmt->execute();
-    $recent_expenses = $stmt->fetchAll();
+    $investors = $db->query("SELECT * FROM investors ORDER BY name")->fetchAll();
 } catch (Exception $e) {
-    // Table might not exist yet
+    $investors = [];
 }
 
-// Get expense categories summary (combined from all projects)
-$expense_categories = [];
+// Get projects with investor relationship
 try {
-    $stmt = $db->prepare("
-        SELECT 
-            pe.category,
-            SUM(pe.amount_idr) as total_amount_idr,
-            COUNT(*) as transaction_count
-        FROM project_expenses pe
-        JOIN projects p ON pe.project_id = p.id
-        GROUP BY pe.category
-        ORDER BY total_amount_idr DESC
-    ");
-    $stmt->execute();
-    $expense_categories = $stmt->fetchAll();
+    $projects = $db->query("SELECT * FROM projects ORDER BY name")->fetchAll();
 } catch (Exception $e) {
-    // Table might not exist yet
+    $projects = [];
 }
 
-// Calculate total capital across all investors
-$total_capital = 0;
-$total_expenses = 0;
-$total_balance = 0;
-
+// Calculate totals
+$totalCapital = 0;
+$totalExpenses = 0;
 foreach ($investors as $inv) {
-    $total_capital += $inv['total_capital_idr'] ?? 0;
-    $total_expenses += $inv['total_expenses_idr'] ?? 0;
-    $total_balance += $inv['remaining_balance_idr'] ?? 0;
+    $totalCapital += $inv['total_capital'] ?? 0;
+    $totalExpenses += $inv['total_expenses'] ?? 0;
 }
+
+// Get project expenses summary
+try {
+    $stmt = $db->prepare("
+        SELECT project_id, SUM(amount_idr) as total_expenses 
+        FROM project_expenses 
+        GROUP BY project_id
+    ");
+    $stmt->execute();
+    $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $expensesMap = [];
+    foreach ($expenses as $e) {
+        $expensesMap[$e['project_id']] = $e['total_expenses'];
+    }
+} catch (Exception $e) {
+    $expensesMap = [];
+}
+
+$pageTitle = 'Manajemen Investor';
+
+// Inline styles using CSS variables
+$inlineStyles = '
+<style>
+.investor-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.investor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.investor-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.tab-btn:hover {
+    color: #667eea;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.stat-card h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 0.3rem 0;
+}
+
+.stat-card .value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0.3rem 0;
+}
+
+.stat-card .label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.content-section {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.05));
+}
+
+.data-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.data-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-tertiary, rgba(102, 126, 234, 0.05));
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.status-active {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.status-inactive {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+.amount {
+    font-family: "Courier New", monospace;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.action-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.action-links a {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    color: #667eea;
+}
+
+.action-links a:hover {
+    color: #764ba2;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.empty-state svg {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+    stroke: var(--text-secondary);
+}
+
+.empty-state p {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.accounting-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.accounting-item {
+    background: var(--bg-tertiary, rgba(0, 0, 0, 0.05));
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.accounting-item label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.accounting-item .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: "Courier New", monospace;
+}
+
+</style>
+';
+
+include '../../includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modul Investor - Manajemen Dana</title>
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <style>
-        .main-content {
-            background: var(--bg-primary) !important;
-            min-height: 100vh !important;
-        }
-        
-        .investor-container {
-            padding: 2rem;
-        }
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-        .dashboard-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
+<div class="investor-container">
+    <!-- Header -->
+    <div class="investor-header">
+        <h1>💼 Manajemen Investor & Project</h1>
+        <button class="btn-add">+ Tambah Investor</button>
+    </div>
 
-        .card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="investor">Daftar Investor</button>
+        <button class="tab-btn" data-tab="project">Daftar Project</button>
+        <button class="tab-btn" data-tab="expense">Input Pengeluaran</button>
+        <button class="tab-btn" data-tab="accounting">Laporan Akuntansi</button>
+    </div>
 
-        .card-header {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
-        }
-
-        .card-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .card-subtext {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-        }
-
-        .investor-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .investor-table thead {
-            background: var(--bg-tertiary);
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .investor-table th {
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .investor-table td {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .investor-table tbody tr:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-active {
-            background: rgba(34, 197, 94, 0.1);
-            color: #22c55e;
-        }
-
-        .status-inactive {
-            background: rgba(107, 114, 128, 0.1);
-            color: #6b7280;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: var(--border-color);
-        }
-
-        .btn-small {
-            padding: 0.35rem 0.75rem;
-            font-size: 0.75rem;
-        }
-
-        .header-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .header-section h1 {
-            margin: 0;
-            font-size: 2rem;
-        }
-
-        .chart-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-box {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .chart-box h3 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-            color: var(--text-primary);
-        }
-
-        .chart-wrapper {
-            position: relative;
-            height: 320px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 2rem;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-muted);
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 1rem;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 1.5rem;
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: rgba(34, 197, 94, 0.1);
-            color: #22c55e;
-            border: 1px solid #22c55e;
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid #ef4444;
-        }
-    </style>
-</head>
-<body>
-    <?php include '../../includes/header-simple.php'; ?>
-
-    <main class="main-content">
-        <div class="investor-container">
-            <!-- Header Section -->
-            <div class="header-section">
-                <h1>📊 Manajemen Investor</h1>
-                <button class="btn btn-primary" onclick="openAddInvestorModal()">
-                    <i data-feather="plus" style="display: inline; margin-right: 0.5rem; width: 18px; height: 18px;"></i>
-                    Tambah Investor
-                </button>
-            </div>
-
-            <!-- Alert Messages -->
-            <div id="alertContainer"></div>
-
-            <!-- Kas Besar Section - Elegant Design -->
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 2.5rem; margin-bottom: 2rem; box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                    <div>
-                        <h2 style="color: white; margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="font-size: 2rem;">💼</span>
-                            Kas Besar Projek
-                        </h2>
-                        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 1rem;">Dana pooling dari <?php echo count($investors); ?> investor untuk pembiayaan projek</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="color: rgba(255,255,255,0.8); font-size: 0.875rem; margin-bottom: 0.25rem;">Total Dana Tersedia</div>
-                        <div style="color: white; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px;">
-                            Rp <?php echo number_format($total_capital, 0, ',', '.'); ?>
-                        </div>
-                        <div style="color: rgba(255,255,255,0.8); font-size: 0.938rem; margin-top: 0.25rem;">
-                            ≈ USD $<?php echo number_format($total_capital / 15500, 2, ',', '.'); ?>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Stats Grid -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem;">
-                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.2);">
-                        <div style="color: rgba(255,255,255,0.9); font-size: 0.813rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Modal Terkumpul</div>
-                        <div style="color: white; font-size: 1.5rem; font-weight: 700;">Rp <?php echo number_format($total_capital, 0, ',', '.'); ?></div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.2);">
-                        <div style="color: rgba(255,255,255,0.9); font-size: 0.813rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Terpakai Projek</div>
-                        <div style="color: white; font-size: 1.5rem; font-weight: 700;">Rp <?php echo number_format($total_expenses, 0, ',', '.'); ?></div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.2);">
-                        <div style="color: rgba(255,255,255,0.9); font-size: 0.813rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Kas</div>
-                        <div style="color: #86efac; font-size: 1.5rem; font-weight: 700;">Rp <?php echo number_format($total_balance, 0, ',', '.'); ?></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chart Section -->
-            <div class="chart-container">
-                <div class="chart-box">
-                    <h3>💰 Akumulasi Modal Per Investor</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="capitalChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-box">
-                    <h3>📊 Pengeluaran Per Projek</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="projectExpenseChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Investors Table -->
-            <div style="margin-bottom: 2rem;">
-                <h2 style="margin-bottom: 1rem;">Daftar Investor</h2>
-                <?php if (count($investors) > 0): ?>
-                    <table class="investor-table">
-                        <thead>
-                            <tr>
-                                <th>Nama Investor</th>
-                                <th>Kontak</th>
-                                <th>Modal Masuk</th>
-                                <th>Saldo</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($investors as $inv): ?>
-                                <tr>
-                                    <td>
-                                        <strong><?php echo htmlspecialchars($inv['name']); ?></strong><br>
-                                        <small style="color: var(--text-muted);"><?php echo htmlspecialchars($inv['notes'] ?? '-'); ?></small>
-                                    </td>
-                                    <td>
-                                        <?php echo htmlspecialchars($inv['contact'] ?? '-'); ?><br>
-                                        <small style="color: var(--text-muted);"><?php echo htmlspecialchars($inv['email'] ?? '-'); ?></small>
-                                    </td>
-                                    <td>
-                                        <strong style="color: var(--text-primary); font-size: 1rem;">Rp <?php echo number_format($inv['total_capital_idr'] ?? 0, 0, ',', '.'); ?></strong>
-                                        <br><small style="color: var(--text-muted); font-size: 0.813rem;">USD $<?php echo number_format(($inv['total_capital_idr'] ?? 0) / 15500, 2, ',', '.'); ?></small>
-                                    </td>
-                                    <td>
-                                        <strong style="color: #22c55e; font-size: 1rem;">Rp <?php echo number_format($inv['remaining_balance_idr'] ?? 0, 0, ',', '.'); ?></strong>
-                                        <br><small style="color: var(--text-muted); font-size: 0.813rem;">Kontribusi ke kas</small>
-                                    </td>
-                                    <td>
-                                        <span class="status-badge status-active">
-                                            Active
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn btn-secondary btn-small" onclick="viewInvestor(<?php echo $inv['id']; ?>)" title="Lihat Detail">
-                                                <i data-feather="eye" style="width: 14px; height: 14px;"></i>
-                                            </button>
-                                            <button class="btn btn-success btn-small" onclick="addCapitalTransaction(<?php echo $inv['id']; ?>)" title="Tambah Modal" style="background: #10b981; border-color: #10b981;">
-                                                <i data-feather="plus-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                                Saldo
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <div class="card" style="text-align: center; padding: 3rem;">
-                        <p style="color: var(--text-muted); margin: 0;">Belum ada investor. Klik tombol "Tambah Investor" untuk memulai.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
+    <!-- Statistics Cards -->
+    <div id="dashboard" class="tab-content active">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>👥 Total Investor</h3>
+            <div class="value"><?php echo count($investors) ?? 0; ?></div>
+            <div class="label">Investor aktif</div>
         </div>
 
-        <!-- Pie Chart dan Recent Transactions Section -->
-        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem;">
-            <!-- Pie Chart: Pengeluaran Per Projek -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary);">
-                        <i data-feather="pie-chart" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i>
-                        Pengeluaran Per Kategori
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <?php 
-                    $has_expense_data = !empty($expense_categories) && array_sum(array_column($expense_categories, 'total_amount_idr')) > 0;
-                    ?>
-                    
-                    <?php if ($has_expense_data): ?>
-                        <canvas id="expenseCategoryChart" style="max-height: 300px;"></canvas>
-                    <?php else: ?>
-                        <div style="text-align: center; padding: 3rem;">
-                            <i data-feather="pie-chart" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-                            <p style="color: var(--text-muted); margin: 0;">Belum ada data pengeluaran</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Recent Transactions -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: var(--text-primary);">
-                        <i data-feather="activity" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;"></i>
-                        Aktivitas Pengeluaran Terbaru
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <?php if (!empty($recent_expenses)): ?>
-                        <div style="max-height: 300px; overflow-y: auto;">
-                            <?php foreach ($recent_expenses as $expense): ?>
-                                <div style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: start;">
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 500; color: var(--text-primary); margin-bottom: 0.25rem;">
-                                            <?php echo htmlspecialchars($expense['project_name']); ?>
-                                        </div>
-                                        <div style="font-size: 0.875rem; color: var(--text-muted);">
-                                            <?php echo htmlspecialchars($expense['description'] ?? '-'); ?>
-                                        </div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                            <?php echo date('d M Y', strtotime($expense['expense_date'])); ?>
-                                        </div>
-                                    </div>
-                                    <div style="text-align: right; white-space: nowrap; margin-left: 1rem;">
-                                        <div style="font-weight: 600; color: #ef4444;">
-                                            -Rp <?php echo number_format($expense['amount_idr'] ?? 0, 0, ',', '.'); ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div style="text-align: center; padding: 3rem;">
-                            <i data-feather="activity" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
-                            <p style="color: var(--text-muted); margin: 0;">Belum ada transaksi pengeluaran</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
+        <div class="stat-card">
+            <h3>📊 Total Project</h3>
+            <div class="value"><?php echo count($projects) ?? 0; ?></div>
+            <div class="label">Project berjalan</div>
         </div>
 
-    </main>
+        <div class="stat-card">
+            <h3>💰 Total Modal</h3>
+            <div class="value">Rp <?php echo number_format($totalCapital, 0, ',', '.'); ?></div>
+            <div class="label">Dana terkumpul</div>
+        </div>
 
-    <!-- Add Investor Modal -->
-    <div id="addInvestorModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Tambah Investor Baru</h2>
-                <button class="close-btn" onclick="closeAddInvestorModal()">✕</button>
-            </div>
-            <form id="addInvestorForm" onsubmit="submitAddInvestor(event)">
-                <div class="form-group">
-                    <label for="investor_name">Nama Investor *</label>
-                    <input type="text" id="investor_name" name="investor_name" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="investor_address">Alamat Lengkap *</label>
-                    <textarea id="investor_address" name="investor_address" required></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="contact_phone">Nomor Telepon</label>
-                    <input type="tel" id="contact_phone" name="contact_phone">
-                </div>
-
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email">
-                </div>
-
-                <div class="form-group">
-                    <label for="notes">Catatan</label>
-                    <textarea id="notes" name="notes" style="min-height: 60px;"></textarea>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeAddInvestorModal()">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Investor</button>
-                </div>
-            </form>
+        <div class="stat-card">
+            <h3>📈 Total Pengeluaran</h3>
+            <div class="value">Rp <?php echo number_format($totalExpenses, 0, ',', '.'); ?></div>
+            <div class="label">Semua project</div>
         </div>
     </div>
 
-    <!-- Add Capital Transaction Modal -->
-    <div id="capitalTransactionModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Tambah Transaksi Modal</h2>
-                <button class="close-btn" onclick="closeCapitalTransactionModal()">✕</button>
-            </div>
-            <form id="capitalTransactionForm" onsubmit="submitCapitalTransaction(event)">
-                <input type="hidden" id="investor_id_hidden" name="investor_id">
+    <!-- Charts Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        <!-- Chart 1: Uang Masuk -->
+        <div class="content-section">
+            <h3 class="section-title">📥 Total Uang Masuk Per Investor</h3>
+            <canvas id="chartModalMasuk"></canvas>
+        </div>
 
-                <div class="form-group">
-                    <label for="amount_usd">Jumlah USD *</label>
-                    <input type="number" id="amount_usd" name="amount_usd" step="0.01" required>
+        <!-- Chart 2: Uang Keluar -->
+        <div class="content-section">
+            <h3 class="section-title">📤 Perbandingan Modal vs Pengeluaran</h3>
+            <canvas id="chartModalKeluar"></canvas>
+        </div>
+
+        <!-- Chart 3: Progres Project -->
+        <div class="content-section">
+            <h3 class="section-title">⏳ Progres Pengeluaran Project</h3>
+            <canvas id="chartProgresProject"></canvas>
+        </div>
+
+        <!-- Chart 4: Detail Pengeluaran -->
+        <div class="content-section">
+            <h3 class="section-title">💸 Total Pengeluaran Per Project</h3>
+            <canvas id="chartDetailPengeluaran"></canvas>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- Investors Tab -->
+    <div id="investor" class="tab-content">
+        <h2 class="section-title">📋 Daftar Investor</h2>
+        
+        <?php if (empty($investors)): ?>
+        <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <p>Belum ada data investor</p>
+        </div>
+        <?php else: ?>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nama Investor</th>
+                    <th>Email</th>
+                    <th>Kontak</th>
+                    <th>Total Modal</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($investors as $inv): ?>
+                <tr>
+                    <td><strong><?php echo htmlspecialchars($inv['name'] ?? ''); ?></strong></td>
+                    <td><?php echo htmlspecialchars($inv['email'] ?? '-'); ?></td>
+                    <td><?php echo htmlspecialchars($inv['contact'] ?? '-'); ?></td>
+                    <td class="amount">
+                        Rp <?php echo number_format($inv['total_capital'] ?? 0, 0, ',', '.'); ?>
+                    </td>
+                    <td>
+                        <span class="status-badge status-active">
+                            Aktif
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-links">
+                            <a href="#edit">✏️ Edit</a>
+                            <a href="#delete">🗑️ Hapus</a>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+    </div>
+
+    <!-- Projects Tab -->
+    <div id="project" class="tab-content">
+    <div class="content-section">
+        <h2 class="section-title">📌 Daftar Project</h2>
+        
+        <?php if (empty($projects)): ?>
+        <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <p>Belum ada data project</p>
+        </div>
+        <?php else: ?>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nama Project</th>
+                    <th>Lokasi</th>
+                    <th>Budget</th>
+                    <th>Pengeluaran</th>
+                    <th>Sisa Budget</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($projects as $proj): ?>
+                <tr>
+                    <td><strong><?php echo htmlspecialchars($proj['name'] ?? ''); ?></strong></td>
+                    <td><?php echo htmlspecialchars($proj['location'] ?? '-'); ?></td>
+                    <td class="amount">
+                        <?php echo 'Rp ' . number_format($proj['budget'] ?? 0, 0, ',', '.'); ?>
+                    </td>
+                    <td class="amount">
+                        Rp 0
+                    </td>
+                    <td class="amount">
+                        Rp <?php echo number_format($proj['budget'] ?? 0, 0, ',', '.'); ?>
+                    </td>
+                    <td>
+                        <span class="status-badge status-active">
+                            <?php echo ucfirst(htmlspecialchars($proj['status'] ?? 'Active')); ?>
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-links">
+                            <a href="#edit">✏️ Edit</a>
+                            <a href="#delete">🗑️ Hapus</a>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+    </div>
+
+    <!-- Expense Input Tab -->
+    <div id="expense" class="tab-content">
+    <div class="content-section">
+        <h2 class="section-title">➕ Input Pengeluaran Project</h2>
+        
+        <form id="expenseForm" method="POST" style="background: var(--bg-tertiary, rgba(0,0,0,0.05)); padding: 2rem; border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Project</label>
+                    <select name="project_id" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);">
+                        <option value="">-- Pilih Project --</option>
+                        <?php foreach ($projects as $proj): ?>
+                        <option value="<?php echo $proj['id']; ?>"><?php echo htmlspecialchars($proj['name'] ?? ''); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="exchange_rate_display">Kurs USD → IDR</label>
-                    <input type="text" id="exchange_rate_display" readonly style="background: var(--bg-tertiary); cursor: not-allowed;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Nominal (Rp)</label>
+                    <input type="number" name="amount" required placeholder="0" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);">
                 </div>
 
-                <div class="form-group">
-                    <label for="amount_idr_display">Total IDR</label>
-                    <input type="text" id="amount_idr_display" readonly style="background: var(--bg-tertiary); cursor: not-allowed;">
-                </div>
-
-                <div class="form-group">
-                    <label for="transaction_date">Tanggal Transaksi *</label>
-                    <input type="date" id="transaction_date" name="transaction_date" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="payment_method">Metode Pembayaran</label>
-                    <select id="payment_method" name="payment_method">
-                        <option value="bank_transfer">Transfer Bank</option>
-                        <option value="cash">Tunai</option>
-                        <option value="check">Cek</option>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Kategori</label>
+                    <select name="category" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="material">Pembelian Material</option>
+                        <option value="transport">Pembayaran Truk</option>
+                        <option value="ship">Tiket Kapal</option>
+                        <option value="labor">Gaji Tukang</option>
                         <option value="other">Lainnya</option>
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="reference_no">No. Referensi</label>
-                    <input type="text" id="reference_no" name="reference_no">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Tanggal</label>
+                    <input type="date" name="expense_date" required value="<?php echo date('Y-m-d'); ?>" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);">
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="transaction_description">Deskripsi</label>
-                    <textarea id="transaction_description" name="description" style="min-height: 60px;"></textarea>
-                </div>
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Keterangan</label>
+                <textarea name="description" placeholder="Masukkan keterangan pengeluaran..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); min-height: 80px;"></textarea>
+            </div>
 
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeCapitalTransactionModal()">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Transaksi</button>
-                </div>
-            </form>
+            <div style="text-align: right;">
+                <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    💾 Simpan Pengeluaran
+                </button>
+            </div>
+        </form>
+
+        <div style="margin-top: 2rem;">
+            <h3 style="color: var(--text-primary);">📋 Riwayat Pengeluaran</h3>
+            <p style="color: var(--text-secondary);">Belum ada pengeluaran tercatat</p>
         </div>
     </div>
+    </div>
 
-    <script>
-        // Initialize Feather Icons
-        feather.replace();
+    <!-- Accounting Tab -->
+    <div id="accounting" class="tab-content">
+    <div class="content-section">
+        <h2 class="section-title">📊 Laporan Akuntansi</h2>
         
-        // Set today's date as default
-        document.getElementById('transaction_date').valueAsDate = new Date();
+        <div class="accounting-summary">
+            <div class="accounting-item">
+                <label>Total Modal Masuk (IDR)</label>
+                <div class="value">Rp <?php echo number_format($totalCapital, 0, ',', '.'); ?></div>
+            </div>
+            <div class="accounting-item">
+                <label>Total Pengeluaran (IDR)</label>
+                <div class="value">Rp <?php echo number_format($totalExpenses, 0, ',', '.'); ?></div>
+            </div>
+            <div class="accounting-item">
+                <label>Saldo Tersisa (IDR)</label>
+                <div class="value">Rp <?php echo number_format($totalCapital - $totalExpenses, 0, ',', '.'); ?></div>
+            </div>
+        </div>
 
-        // Fungsi Modal
-        function openAddInvestorModal() {
-            document.getElementById('addInvestorModal').classList.add('active');
-        }
+        <div class="content-section" style="margin-top: 1.5rem;">
+            <h3 style="margin-top: 0;">Rincian Per Investor</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nama Investor</th>
+                        <th>Modal</th>
+                        <th>Pengeluaran</th>
+                        <th>Sisa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($investors as $inv): ?>
+                    <tr>
+                        <td><strong><?php echo htmlspecialchars($inv['name'] ?? ''); ?></strong></td>
+                        <td class="amount">Rp <?php echo number_format($inv['total_capital'] ?? 0, 0, ',', '.'); ?></td>
+                        <td class="amount">Rp <?php echo number_format($inv['total_expenses'] ?? 0, 0, ',', '.'); ?></td>
+                        <td class="amount">Rp <?php echo number_format(($inv['total_capital'] ?? 0) - ($inv['total_expenses'] ?? 0), 0, ',', '.'); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+</div>
 
-        function closeAddInvestorModal() {
-            document.getElementById('addInvestorModal').classList.remove('active');
-            document.getElementById('addInvestorForm').reset();
-        }
+<script>
+// Function untuk detect light/dark theme dan get text color
+function getChartTextColor() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || 
+                   window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return isDark ? '#fff' : '#000';
+}
 
-        function addCapitalTransaction(investorId) {
-            document.getElementById('investor_id_hidden').value = investorId;
-            document.getElementById('capitalTransactionModal').classList.add('active');
-            loadExchangeRate();
-        }
+// Prepare chart data from PHP
+const investorsData = <?php echo json_encode($investors); ?>;
+const projectsData = <?php echo json_encode($projects); ?>;
+const totalCapital = <?php echo $totalCapital; ?>;
+const totalExpenses = <?php echo $totalExpenses; ?>;
 
-        function closeCapitalTransactionModal() {
-            document.getElementById('capitalTransactionModal').classList.remove('active');
-            document.getElementById('capitalTransactionForm').reset();
-        }
+// Chart 1: Uang Masuk Per Investor
+const investorNames = investorsData.map(i => i.name);
+const investorCapitals = investorsData.map(i => i.total_capital);
 
-        // Fixed exchange rate (Rp per USD) - Update manually jika perlu
-        const FIXED_USD_RATE = 15500; // Rp 15,500 per USD (25 Jan 2026)
-
-        // Load exchange rate (fixed value)
-        function loadExchangeRate() {
-            document.getElementById('exchange_rate_display').value = 'Rp ' + FIXED_USD_RATE.toLocaleString('id-ID');
-        }
-
-        // Calculate IDR amount when USD changes
-        document.getElementById('amount_usd').addEventListener('change', function() {
-            const amountUsd = parseFloat(this.value) || 0;
-            if (amountUsd > 0) {
-                const amountIdr = amountUsd * FIXED_USD_RATE;
-                document.getElementById('exchange_rate_display').value = 'Rp ' + FIXED_USD_RATE.toLocaleString('id-ID');
-                document.getElementById('amount_idr_display').value = 'Rp ' + amountIdr.toLocaleString('id-ID', {maximumFractionDigits: 0});
-            }
-        });
-
-        // Submit add investor
-        async function submitAddInvestor(event) {
-            event.preventDefault();
-            const form = document.getElementById('addInvestorForm');
-            const btn = event.target.querySelector('button[type="submit"]');
-            btn.classList.add('loading');
-
-            try {
-                const formData = new FormData(form);
-                const response = await fetch('<?php echo BASE_URL; ?>/api/investor-create.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                showAlert(data.message, data.success ? 'success' : 'error');
-
-                if (data.success) {
-                    closeAddInvestorModal();
-                    setTimeout(() => location.reload(), 1000);
+const ctx1 = document.getElementById('chartModalMasuk').getContext('2d');
+new Chart(ctx1, {
+    type: 'bar',
+    data: {
+        labels: investorNames,
+        datasets: [{
+            label: 'Dana Modal (Rp)',
+            data: investorCapitals,
+            backgroundColor: [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(72, 187, 120, 0.8)',
+                'rgba(237, 137, 54, 0.8)'
+            ],
+            borderColor: [
+                'rgba(102, 126, 234, 1)',
+                'rgba(72, 187, 120, 1)',
+                'rgba(237, 137, 54, 1)'
+            ],
+            borderWidth: 2,
+            borderRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    font: { size: 12, weight: 'bold' },
+                    color: getChartTextColor()
                 }
-            } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
-            } finally {
-                btn.classList.remove('loading');
-            }
-        }
-
-        // Submit capital transaction
-        async function submitCapitalTransaction(event) {
-            event.preventDefault();
-            const form = document.getElementById('capitalTransactionForm');
-            const btn = event.target.querySelector('button[type="submit"]');
-            const investorId = document.getElementById('investor_id_hidden').value;
-            btn.classList.add('loading');
-
-            try {
-                const formData = new FormData(form);
-                const response = await fetch('<?php echo BASE_URL; ?>/api/investor-add-capital.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                showAlert(data.message, data.success ? 'success' : 'error');
-
-                if (data.success) {
-                    closeCapitalTransactionModal();
-                    setTimeout(() => location.reload(), 1000);
-                }
-            } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
-            } finally {
-                btn.classList.remove('loading');
-            }
-        }
-
-        // View investor details
-        function viewInvestor(investorId) {
-            window.location.href = '<?php echo BASE_URL; ?>/modules/investor/investor-detail.php?id=' + investorId;
-        }
-
-        // Show alert
-        function showAlert(message, type) {
-            const container = document.getElementById('alertContainer');
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-' + type;
-            alert.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(alert);
-
-            setTimeout(() => alert.remove(), 5000);
-        }
-
-        // Initialize Chart.js - Modern Trading Line Chart 2028 Vibe
-        const ctx = document.getElementById('capitalChart').getContext('2d');
-        const chartData = <?php
-            $labels = [];
-            $data = [];
-            foreach ($investors as $inv) {
-                $labels[] = $inv['name'];
-                $data[] = $inv['total_capital_idr'] ?? 0;
-            }
-            echo json_encode([
-                'labels' => $labels,
-                'data' => $data
-            ]);
-        ?>;
-
-        // Create gradient for line chart
-        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-        gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.15)');
-        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.02)');
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    label: 'Total Modal (IDR)',
-                    data: chartData.data,
-                    borderColor: '#6366f1',
-                    backgroundColor: gradient,
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#6366f1',
-                    pointBorderColor: '#1e293b',
-                    pointBorderWidth: 3,
-                    pointHoverRadius: 8,
-                    pointHoverBackgroundColor: '#818cf8',
-                    pointHoverBorderColor: '#6366f1',
-                    pointHoverBorderWidth: 4
-                }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: false
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'Rp ' + (value/1000000).toFixed(0) + 'M';
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        titleColor: '#f1f5f9',
-                        bodyColor: '#cbd5e1',
-                        borderColor: '#6366f1',
-                        borderWidth: 2,
-                        padding: 16,
-                        displayColors: false,
-                        titleFont: {
-                            size: 15,
-                            weight: '600',
-                            family: "'Inter', 'Segoe UI', sans-serif"
-                        },
-                        bodyFont: {
-                            size: 14,
-                            weight: '500'
-                        },
-                        callbacks: {
-                            title: function(context) {
-                                return '💼 ' + context[0].label;
-                            },
-                            label: function(context) {
-                                const value = context.parsed.y;
-                                const formatted = new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0
-                                }).format(value);
-                                return 'Modal: ' + formatted;
-                            },
-                            afterLabel: function(context) {
-                                const total = chartData.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((context.parsed.y / total) * 100).toFixed(1);
-                                return 'Kontribusi: ' + percentage + '%';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        border: {
-                            display: true,
-                            color: '#334155'
-                        },
-                        ticks: {
-                            color: '#cbd5e1',
-                            font: {
-                                size: 13,
-                                weight: '600',
-                                family: "'Inter', 'Segoe UI', sans-serif"
-                            },
-                            padding: 12
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(148, 163, 184, 0.08)',
-                            drawBorder: false
-                        },
-                        border: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#94a3b8',
-                            font: {
-                                size: 12,
-                                weight: '500'
-                            },
-                            padding: 12,
-                            callback: function(value) {
-                                if (value >= 1000000000) {
-                                    return 'Rp ' + (value / 1000000000).toFixed(1) + 'M';
-                                } else if (value >= 1000000) {
-                                    return 'Rp ' + (value / 1000000).toFixed(1) + 'Jt';
-                                }
-                                return 'Rp ' + (value / 1000).toFixed(0) + 'K';
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    duration: 2000,
-                    easing: 'easeInOutQuart'
+                    font: { size: 11, weight: '600' },
+                    color: getChartTextColor()
                 }
             }
-        });
+        }
+    }
+});
 
-        // Initialize Expense Category Pie Chart
-        <?php if ($has_expense_data): ?>
-        const ctx2 = document.getElementById('expenseCategoryChart').getContext('2d');
-        const categoryData = <?php
-            $category_labels = [];
-            $category_amounts = [];
-            $category_colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6', '#06b6d4', '#84cc16'];
-            
-            foreach ($expense_categories as $cat) {
-                $category_labels[] = $cat['category'] ?? 'Lainnya';
-                $category_amounts[] = $cat['total_amount_idr'] ?? 0;
+// Chart 2: Modal vs Pengeluaran (Pie)
+const ctx2 = document.getElementById('chartModalKeluar').getContext('2d');
+new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+        labels: ['💚 Sisa Dana', '🟠 Pengeluaran'],
+        datasets: [{
+            data: [totalCapital - totalExpenses, totalExpenses],
+            backgroundColor: [
+                'rgba(72, 187, 120, 0.9)',
+                'rgba(237, 137, 54, 0.9)'
+            ],
+            borderColor: [
+                'rgba(72, 187, 120, 1)',
+                'rgba(237, 137, 54, 1)'
+            ],
+            borderWidth: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { 
+                position: 'bottom',
+                align: 'center',
+                labels: {
+                    font: {
+                        size: 16,
+                        weight: 'bold',
+                        family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                    },
+                    color: getChartTextColor(),
+                    padding: 20,
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    boxWidth: 15,
+                    boxHeight: 15
+                }
             }
-            
-            echo json_encode([
-                'labels' => $category_labels,
-                'data' => $category_amounts,
-                'colors' => array_slice($category_colors, 0, count($category_labels))
-            ]);
-        ?>;
+        }
+    }
+});
 
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: categoryData.labels,
-                datasets: [{
-                    data: categoryData.data,
-                    backgroundColor: categoryData.colors,
-                    borderColor: '#1e293b',
-                    borderWidth: 2,
-                    hoverBorderColor: '#0f172a',
-                    hoverBorderWidth: 4
-                }]
+// Chart 3: Progres Project
+const projectNames = projectsData.map(p => p.name || p.project_name);
+const projectBudgets = projectsData.map(p => p.budget || p.budget_idr);
+
+const ctx3 = document.getElementById('chartProgresProject').getContext('2d');
+new Chart(ctx3, {
+    type: 'bar',
+    data: {
+        labels: projectNames,
+        datasets: [{
+            label: 'Budget (Rp)',
+            data: projectBudgets,
+            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+            borderColor: 'rgba(102, 126, 234, 1)',
+            borderWidth: 2,
+            borderRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    font: { size: 12, weight: 'bold' },
+                    color: getChartTextColor()
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            color: '#cbd5e1',
-                            font: {
-                                size: 12,
-                                weight: '500',
-                                family: "'Inter', 'Segoe UI', sans-serif"
-                            },
-                            padding: 15,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        }
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'Rp ' + (value/1000000).toFixed(0) + 'M';
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        titleColor: '#f1f5f9',
-                        bodyColor: '#cbd5e1',
-                        borderColor: '#334155',
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: true,
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.parsed;
-                                const formatted = new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: 'IDR',
-                                    minimumFractionDigits: 0
-                                }).format(value);
-                                return context.label + ': ' + formatted;
-                            },
-                            afterLabel: function(context) {
-                                const total = categoryData.data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                return 'Porsi: ' + percentage + '% dari total';
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    duration: 1500,
-                    easing: 'easeInOutQuart'
+                    font: { size: 11, weight: '600' },
+                    color: getChartTextColor()
                 }
             }
-        });
-        <?php endif; ?>
+        }
+    }
+});
 
-        // Initialize feather icons
-        feather.replace();
-    </script>
-</body>
-</html>
-?>
+// Chart 4: Detail Pengeluaran
+const ctx4 = document.getElementById('chartDetailPengeluaran').getContext('2d');
+new Chart(ctx4, {
+    type: 'line',
+    data: {
+        labels: projectNames,
+        datasets: [{
+            label: 'Total Pengeluaran (Rp)',
+            data: projectNames.map(() => 0), // Akan diupdate dari DB
+            borderColor: 'rgba(237, 137, 54, 1)',
+            backgroundColor: 'rgba(237, 137, 54, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: 'rgba(237, 137, 54, 1)',
+            pointBorderWidth: 2,
+            pointRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { 
+                display: true,
+                position: 'top',
+                labels: {
+                    font: { size: 13, weight: 'bold' },
+                    color: getChartTextColor(),
+                    padding: 15,
+                    usePointStyle: true,
+                    pointStyle: 'circle'
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    font: { size: 11, weight: '600' },
+                    color: getChartTextColor()
+                }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'Rp ' + (value/1000000).toFixed(0) + 'M';
+                    },
+                    font: { size: 11, weight: '600' },
+                    color: getChartTextColor()
+                }
+            }
+        }
+    }
+});
+
+// Tab navigation
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const tabName = this.getAttribute('data-tab');
+        
+        // Remove active class dari semua tab buttons
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        // Remove active class dari semua tab content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Tambah active ke tab yang diklik
+        this.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+    });
+});
+
+// Handle Form Submission untuk Input Pengeluaran
+const expenseForm = document.getElementById('expenseForm');
+if (expenseForm) {
+    expenseForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+            project_id: formData.get('project_id'),
+            amount: parseFloat(formData.get('amount')),
+            category: formData.get('category'),
+            expense_date: formData.get('expense_date'),
+            description: formData.get('description')
+        };
+
+        try {
+            const response = await fetch('save-expense.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('✅ Pengeluaran berhasil disimpan!');
+                expenseForm.reset();
+                
+                // Reload page untuk update data & chart
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                alert('❌ Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Gagal menyimpan pengeluaran: ' + error.message);
+        }
+    });
+}
+</script>
+
+<?php include '../../includes/footer.php'; ?>

@@ -10,6 +10,14 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $auth = $auth ?? new Auth();
 $currentUser = $auth->getCurrentUser();
+
+// Detect current page for active state
+$current_uri = $_SERVER['REQUEST_URI'];
+$is_dashboard = strpos($current_uri, '/index.php') !== false || $current_uri === BASE_URL . '/' || strpos($current_uri, '/home.php') !== false;
+$is_investor = strpos($current_uri, '/modules/investor') !== false;
+$is_project = strpos($current_uri, '/modules/project') !== false;
+$is_settings = strpos($current_uri, '/modules/settings') !== false;
+$is_owner = strpos($current_uri, '/modules/owner') !== false;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -28,25 +36,40 @@ $currentUser = $auth->getCurrentUser();
         
         <nav style="padding:1rem 0;">
             <ul style="list-style:none;padding:0;margin:0;">
-                <li><a href="<?php echo BASE_URL; ?>/index.php" style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;">
+                <li><a href="<?php echo BASE_URL; ?>/index.php" 
+                    style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;<?php echo $is_dashboard ? 'background:rgba(100,181,246,0.15);border-left:3px solid #64b5f6;' : ''; ?>"
+                    class="sidebar-link">
                     <i data-feather="home" style="width:20px;height:20px;margin-right:0.75rem;"></i>Dashboard
                 </a></li>
                 
                 <?php if ($auth->hasPermission('investor')): ?>
-                <li><a href="<?php echo BASE_URL; ?>/modules/investor/" style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;background:rgba(100,181,246,0.1);">
+                <li><a href="<?php echo BASE_URL; ?>/modules/investor/" 
+                    style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;<?php echo $is_investor ? 'background:rgba(100,181,246,0.15);border-left:3px solid #64b5f6;' : ''; ?>"
+                    class="sidebar-link">
                     <i data-feather="briefcase" style="width:20px;height:20px;margin-right:0.75rem;"></i>Investor
                 </a></li>
                 <?php endif; ?>
                 
                 <?php if ($auth->hasPermission('project')): ?>
-                <li><a href="<?php echo BASE_URL; ?>/modules/project/" style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;">
+                <li><a href="<?php echo BASE_URL; ?>/modules/project/" 
+                    style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;<?php echo $is_project ? 'background:rgba(100,181,246,0.15);border-left:3px solid #64b5f6;' : ''; ?>"
+                    class="sidebar-link">
                     <i data-feather="layers" style="width:20px;height:20px;margin-right:0.75rem;"></i>Project
                 </a></li>
                 <?php endif; ?>
                 
+                <?php if ($auth->hasPermission('owner')): ?>
+                <li><a href="<?php echo BASE_URL; ?>/modules/owner/" 
+                    style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;<?php echo $is_owner ? 'background:rgba(100,181,246,0.15);border-left:3px solid #64b5f6;' : ''; ?>"
+                    class="sidebar-link">
+                    <i data-feather="user" style="width:20px;height:20px;margin-right:0.75rem;"></i>Owner
+                </a></li>
+                <?php endif; ?>
+                
                 <?php if ($auth->hasPermission('settings')): ?>
-                <li><a href="<?php echo BASE_URL; ?>/modules/settings/" style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;">
-                    <i data-feather="settings" style="width:20px;height:20px;margin-right:0.75rem;"></i>Settings
+                <li><a href="<?php echo BASE_URL; ?>/modules/settings/" 
+                    style="display:flex;align-items:center;padding:0.75rem 1.5rem;color:#e2e8f0;text-decoration:none;<?php echo $is_settings ? 'background:rgba(100,181,246,0.15);border-left:3px solid #64b5f6;' : ''; ?>"
+                    class="sidebar-link">
                 </a></li>
                 <?php endif; ?>
                 

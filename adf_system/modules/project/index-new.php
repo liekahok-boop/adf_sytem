@@ -52,12 +52,19 @@ $total_available_balance = 0;
 foreach ($investors as $inv) {
     $total_available_balance += $inv['remaining_balance_idr'] ?? 0;
 }
+?>
 
-// Set page title and include header
-$pageTitle = 'Manajemen Project';
-$inlineStyles = '
-<style>
-    .main-content {
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modul Project - Manajemen Pengeluaran</title>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        .main-content {
             background: var(--bg-primary) !important;
             min-height: 100vh !important;
             padding: 0 !important;
@@ -489,12 +496,11 @@ $inlineStyles = '
             margin: 0 0 1.5rem 0;
         }
     </style>
-';
+</head>
+<body>
+    <?php include '../../includes/header-simple.php'; ?>
 
-include '../../includes/header.php'; 
-?>
-
-<main class="main-content">
+    <main class="main-content">
         <div class="project-container">
             <!-- Header Section -->
             <div class="header-section">
@@ -735,9 +741,9 @@ include '../../includes/header.php';
         </div>
     </div>
 
-<?php ob_start(); ?>
-    // Initialize Feather Icons
-    feather.replace();
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
 
         // Set today's date and time as default
         document.getElementById('expense_date').valueAsDate = new Date();
@@ -895,7 +901,6 @@ include '../../includes/header.php';
         const style = document.createElement('style');
         style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
         document.head.appendChild(style);
-<?php 
-$inlineScript = ob_get_clean();
-include '../../includes/footer.php';
-?>
+    </script>
+</body>
+</html>

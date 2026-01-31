@@ -18,6 +18,24 @@ include '../../includes/header.php';
 <!-- Report Menu -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
     
+    <!-- Financial Daily Report - NEW -->
+    <a href="financial-daily.php" class="card" style="text-decoration: none; transition: all 0.3s; border: 2px solid var(--primary-color);">
+        <div style="padding: 1.5rem; position: relative;">
+            <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: var(--primary-color); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.625rem; font-weight: 700;">
+                BARU
+            </div>
+            <div style="width: 56px; height: 56px; border-radius: var(--radius-lg); background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0.1)); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                <i data-feather="file-text" style="width: 28px; height: 28px; color: var(--primary-color);"></i>
+            </div>
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+                📊 Laporan Keuangan Harian
+            </h3>
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
+                Laporan keuangan lengkap dengan detail income & expenses per divisi. Bisa dicetak PDF dengan header logo & alamat lengkap.
+            </p>
+        </div>
+    </a>
+    
     <!-- Daily Report -->
     <a href="daily.php" class="card" style="text-decoration: none; transition: all 0.3s;">
         <div style="padding: 1.5rem;">
