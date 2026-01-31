@@ -26,37 +26,8 @@ $pageTitle = 'Laporan Harian';
 $today = date('Y-m-d');
 $todayDisplay = date('l, d F Y');
 
-// Get company info with logo - prioritize invoice_logo from report settings
+// Get company info
 $company = getCompanyInfo();
-$businessId = ACTIVE_BUSINESS_ID ?? '';
-
-// Try to get business-specific invoice logo first (from report-settings.php)
-$invoiceLogoResult = null;
-if ($businessId) {
-    $invoiceLogoResult = $db->fetchOne("SELECT setting_value FROM settings WHERE setting_key = ?", 
-        ['invoice_logo_' . $businessId]);
-}
-
-// Fallback to global invoice_logo or company logo
-$displayLogo = null;
-if ($invoiceLogoResult && !empty($invoiceLogoResult['setting_value'])) {
-    $displayLogo = $invoiceLogoResult['setting_value'];
-} elseif (!empty($company['invoice_logo'])) {
-    $displayLogo = $company['invoice_logo'];
-} else {
-    $displayLogo = $company['logo'];
-}
-
-$logoPath = null;
-if ($displayLogo) {
-    // Check if it's already a full URL
-    if (strpos($displayLogo, 'http') === 0) {
-        $logoPath = $displayLogo;
-    } else {
-        // Build path to uploads/logos/
-        $logoPath = BASE_URL . '/uploads/logos/' . $displayLogo;
-    }
-}
 
 // ============================================
 // DATA COLLECTION
@@ -90,7 +61,7 @@ try {
         ORDER BY r.room_number ASC";
     $inHouseGuests = $db->fetchAll($inHouseQuery);
     
-    // 3. CHECK-IN TODAY - Only guests who checked in today (not already in-house before today)
+    // 3. CHECK-IN TODAY - Only guests who actually checked in today (actual_checkin_time is today)
     $checkInTodayQuery = "SELECT 
             b.booking_code,
             g.guest_name,
@@ -102,10 +73,8 @@ try {
         INNER JOIN guests g ON b.guest_id = g.id
         INNER JOIN rooms r ON b.room_id = r.id
         WHERE DATE(b.actual_checkin_time) = ?
-        AND b.status = 'checked_in'
-        AND DATE(b.check_in_date) = ?
         ORDER BY b.actual_checkin_time DESC";
-    $checkInToday = $db->fetchAll($checkInTodayQuery, [$today, $today]);
+    $checkInToday = $db->fetchAll($checkInTodayQuery, [$today]);
     
     // 4. CHECK-OUT TODAY
     $checkOutTodayQuery = "SELECT 
@@ -231,38 +200,6 @@ include '../../includes/header.php';
     align-items: center;
 }
 
-.logo-header {
-    flex-shrink: 0;
-    width: 35px;
-    height: 35px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    margin: 0;
-}
-
-.logo-header img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-}
-
-.hotel-logo {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    font-size: 3rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0;
-}
-
 .hotel-name {
     flex: 1;
     font-size: 0.95rem;
@@ -327,24 +264,10 @@ include '../../includes/header.php';
     }
     
     /* Print Header */
-    .logo-header {
-        display: flex;
-        flex-direction: row;
-        gap: 15px;
+    .page-header {
         padding-bottom: 12px;
         border-bottom: 3px solid #6366f1;
-        align-items: center;
-        background: white;
-        border: none;
-    }
-    
-    .hotel-logo {
-        width: 80px;
-        height: 80px;
-        font-size: 48pt;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        margin-bottom: 1rem;
     }
     
     .hotel-name {
@@ -670,17 +593,24 @@ include '../../includes/header.php';
 </style>
 
 <div class="laporan-container">
+    <!-- Action Buttons - Moved to Top -->
+    <div class="action-buttons" style="margin-bottom: 1rem;">
+        <button class="btn btn-primary" onclick="exportToPDF()">
+            <span>📄</span>
+            <span>Export PDF</span>
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <span>🖨️</span>
+            <span>Print Report</span>
+        </button>
+        <button class="btn btn-success" onclick="shareToWhatsApp()">
+            <span>📱</span>
+            <span>Send to WhatsApp</span>
+        </button>
+    </div>
+
     <!-- Header -->
     <div class="page-header">
-        <!-- Logo Section (Left) -->
-        <div class="logo-header">
-            <?php if ($logoPath): ?>
-                <img src="<?php echo $logoPath; ?>" alt="Logo" class="hotel-logo">
-            <?php else: ?>
-                <div class="hotel-logo"><?php echo $company['icon']; ?></div>
-            <?php endif; ?>
-        </div>
-        
         <!-- Company Info (Center) -->
         <div style="flex: 1;">
             <div class="hotel-name"><?php echo htmlspecialchars($company['name']); ?></div>
@@ -1002,22 +932,6 @@ include '../../includes/header.php';
         <?php else: ?>
         <div class="empty-state">No breakfast orders today</div>
         <?php endif; ?>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-        <button class="btn btn-primary" onclick="exportToPDF()">
-            <span>📄</span>
-            <span>Export PDF</span>
-        </button>
-        <button class="btn btn-primary" onclick="window.print()">
-            <span>🖨️</span>
-            <span>Print Report</span>
-        </button>
-        <button class="btn btn-success" onclick="shareToWhatsApp()">
-            <span>📱</span>
-            <span>Send to WhatsApp</span>
-        </button>
     </div>
 </div>
 
