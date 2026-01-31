@@ -320,16 +320,23 @@ elseif ($activeTab === 'ota_fees') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             if ($_POST['action'] === 'update_fee') {
-                $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value, type) 
-                                     VALUES (?, ?, ?) 
-                                     ON DUPLICATE KEY UPDATE setting_value=?");
-                $stmt->execute([
-                    'ota_fee_' . strtolower(str_replace(' ', '_', $_POST['provider'])),
-                    $_POST['fee_percentage'],
-                    'number',
-                    $_POST['fee_percentage']
-                ]);
-                $message = "✓ Fee OTA berhasil diupdate!";
+                $provider = isset($_POST['provider']) ? $_POST['provider'] : '';
+                $feePercentage = isset($_POST['fee_percentage']) ? (int)$_POST['fee_percentage'] : 0;
+                
+                if (!empty($provider)) {
+                    $settingKey = 'ota_fee_' . strtolower(str_replace(' ', '_', $provider));
+                    
+                    $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value, type) 
+                                         VALUES (?, ?, ?) 
+                                         ON DUPLICATE KEY UPDATE setting_value=?");
+                    $stmt->execute([
+                        $settingKey,
+                        $feePercentage,
+                        'number',
+                        $feePercentage
+                    ]);
+                    $message = "✓ Fee OTA untuk " . htmlspecialchars($provider) . " berhasil diupdate!";
+                }
             }
         } catch (Exception $e) {
             $error = "❌ Error: " . $e->getMessage();
