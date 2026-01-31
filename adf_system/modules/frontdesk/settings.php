@@ -320,26 +320,39 @@ elseif ($activeTab === 'ota_fees') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             if ($_POST['action'] === 'update_fee') {
-                $provider = isset($_POST['provider']) ? $_POST['provider'] : '';
-                $feePercentage = isset($_POST['fee_percentage']) ? (int)$_POST['fee_percentage'] : 0;
+                $provider = isset($_POST['provider']) ? trim($_POST['provider']) : '';
+                $feePercentage = isset($_POST['fee_percentage']) ? intval($_POST['fee_percentage']) : 0;
                 
-                if (!empty($provider)) {
-                    $settingKey = 'ota_fee_' . strtolower(str_replace(' ', '_', $provider));
-                    
-                    $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value, type) 
-                                         VALUES (?, ?, ?) 
-                                         ON DUPLICATE KEY UPDATE setting_value=?");
-                    $stmt->execute([
-                        $settingKey,
-                        $feePercentage,
-                        'number',
-                        $feePercentage
-                    ]);
-                    $message = "✓ Fee OTA untuk " . htmlspecialchars($provider) . " berhasil diupdate!";
+                // Validate
+                if (empty($provider)) {
+                    throw new Exception("Provider tidak boleh kosong");
                 }
+                
+                if ($feePercentage < 0 || $feePercentage > 100) {
+                    throw new Exception("Fee harus antara 0-100%");
+                }
+                
+                $settingKey = 'ota_fee_' . strtolower(str_replace([' ', '_', '-'], '_', $provider));
+                
+                // Use correct column name: setting_type not type
+                $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value, setting_type) 
+                                     VALUES (?, ?, ?) 
+                                     ON DUPLICATE KEY UPDATE setting_value=?, updated_at=NOW()");
+                $stmt->execute([
+                    $settingKey,
+                    $feePercentage,
+                    'number',
+                    $feePercentage
+                ]);
+                
+                $message = "✓ Fee OTA untuk " . htmlspecialchars($provider) . " berhasil diupdate menjadi " . $feePercentage . "%!";
+                
+                // Log untuk debug
+                error_log("OTA Fee Updated: $settingKey = $feePercentage%");
             }
         } catch (Exception $e) {
             $error = "❌ Error: " . $e->getMessage();
+            error_log("OTA Fee Error: " . $e->getMessage());
         }
     }
     
