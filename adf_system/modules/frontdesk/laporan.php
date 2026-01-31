@@ -76,7 +76,7 @@ try {
         ORDER BY b.check_in_date ASC";
     $checkInToday = $db->fetchAll($checkInTodayQuery, [$today]);
     
-    // 4. CHECK-OUT TODAY
+    // 4. CHECK-OUT TODAY - Only guests with status checked_in and checkout date is today
     $checkOutTodayQuery = "SELECT 
             b.booking_code,
             g.guest_name,
@@ -86,7 +86,7 @@ try {
         FROM bookings b
         INNER JOIN guests g ON b.guest_id = g.id
         INNER JOIN rooms r ON b.room_id = r.id
-        WHERE b.check_out_date = ? AND b.status IN ('checked_in', 'checked_out')
+        WHERE b.check_out_date = ? AND b.status = 'checked_in'
         ORDER BY r.room_number ASC";
     $checkOutToday = $db->fetchAll($checkOutTodayQuery, [$today]);
     

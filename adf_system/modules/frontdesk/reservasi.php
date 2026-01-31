@@ -390,6 +390,24 @@ include '../../includes/header.php';
     background: rgba(99, 102, 241, 0.4);
 }
 
+.action-btn.action-cancel {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.action-btn.action-cancel:hover {
+    background: rgba(245, 158, 11, 0.4);
+}
+
+.action-btn.action-delete {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.action-btn.action-delete:hover {
+    background: rgba(239, 68, 68, 0.4);
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;
@@ -617,6 +635,14 @@ include '../../includes/header.php';
                             <button class="action-btn" onclick="editBooking(<?php echo $booking['id']; ?>)">
                                 ✏️ Edit
                             </button>
+                            <?php if ($booking['status'] !== 'checked_in' && $booking['status'] !== 'checked_out'): ?>
+                            <button class="action-btn action-cancel" onclick="cancelBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['booking_code']); ?>')">
+                                ❌ Cancel
+                            </button>
+                            <button class="action-btn action-delete" onclick="deleteBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['booking_code']); ?>')">
+                                🗑️ Delete
+                            </button>
+                            <?php endif; ?>
                         </div>
                     </td>
                 </tr>
@@ -647,6 +673,70 @@ function viewBooking(id) {
 
 function editBooking(id) {
     alert('Coming Soon: Edit Booking #' + id);
+}
+
+function cancelBooking(id, bookingCode) {
+    if (!confirm(`⚠️ Yakin ingin CANCEL reservasi ${bookingCode}?\n\nStatus akan berubah menjadi CANCELLED`)) {
+        return;
+    }
+    
+    fetch('../../api/cancel-booking.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            booking_id: id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Reservasi berhasil di-CANCEL');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error.message);
+        console.error('Error:', error);
+    });
+}
+
+function deleteBooking(id, bookingCode) {
+    if (!confirm(`⚠️ PERINGATAN: Ingin menghapus reservasi ${bookingCode}?\n\nAksi ini TIDAK BISA DIBATALKAN!\n\nData akan dihapus permanen dari sistem.`)) {
+        return;
+    }
+    
+    const confirmDelete = prompt(`Ketik "HAPUS" untuk menghapus reservasi ${bookingCode}:`);
+    if (confirmDelete !== 'HAPUS') {
+        alert('Pembatalan dihapus. Data tetap aman.');
+        return;
+    }
+    
+    fetch('../../api/delete-booking.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            booking_id: id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Reservasi berhasil dihapus permanen');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error.message);
+        console.error('Error:', error);
+    });
 }
     </a>
 </div>

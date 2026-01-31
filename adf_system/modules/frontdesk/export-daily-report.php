@@ -47,10 +47,10 @@ try {
         WHERE DATE(b.check_in_date) = ? AND b.status = 'confirmed'
         ORDER BY b.check_in_date ASC", [$today]);
     
-    // Check-out today
+    // Check-out today - only checked_in guests with checkout date today
     $checkOutToday = $db->fetchAll("SELECT b.booking_code, g.guest_name, r.room_number, b.check_in_date, b.check_out_date
         FROM bookings b INNER JOIN guests g ON b.guest_id = g.id INNER JOIN rooms r ON b.room_id = r.id
-        WHERE b.check_out_date = ? ORDER BY r.room_number ASC", [$today]);
+        WHERE b.check_out_date = ? AND b.status = 'checked_in' ORDER BY r.room_number ASC", [$today]);
     
     // Check-in tomorrow
     $tomorrow = date('Y-m-d', strtotime('+1 day'));
