@@ -106,21 +106,14 @@ include '../../includes/header.php';
 ?>
 
 <style>
-/* ============================================
-   RESERVASI PAGE - PREMIUM DESIGN
-   ============================================ */
-
-:root {
-    --glass-blur: 30px;
-}
+/* SIMPLE & ELEGANT DESIGN */
 
 .reservasi-container {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 1.5rem 1rem;
+    padding: 1rem;
 }
 
-/* Header */
 .reservasi-header {
     display: flex;
     justify-content: space-between;
@@ -130,13 +123,10 @@ include '../../includes/header.php';
 }
 
 .reservasi-header h1 {
-    font-size: 1.6rem;
-    font-weight: 950;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 1.5rem;
+    font-weight: 700;
     margin: 0;
+    color: var(--text-primary);
 }
 
 .header-actions {
@@ -146,78 +136,56 @@ include '../../includes/header.php';
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: #6366f1;
     color: white;
     padding: 0.5rem 1rem;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    transition: all 0.2s ease;
     font-size: 0.85rem;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+    background: #4f46e5;
+    transform: translateY(-1px);
 }
 
-.btn-secondary {
-    background: linear-gradient(135deg, #10b981, #34d399);
-    color: white;
-}
-
-/* Filter Section */
 .filter-section {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 1rem;
+    display: flex;
+    gap: 1rem;
     margin-bottom: 1.5rem;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.75rem;
-}
+    align-items: flex-end;
+    flex-wrap: wrap;
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.3rem;
 }
 
 .filter-group label {
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-weight: 600;
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-primary);
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
 }
 
 .filter-group select,
 .filter-group input {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-}
-
-.filter-group select option {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.85rem;
     background: var(--bg-secondary);
     color: var(--text-primary);
 }
 
 /* Bookings Table */
 .bookings-table-wrapper {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 1rem;
     overflow-x: auto;
 }
 
@@ -228,11 +196,12 @@ include '../../includes/header.php';
 }
 
 .bookings-table thead {
-    border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-secondary);
 }
 
 .bookings-table th {
-    padding: 0.6rem;
+    padding: 0.75rem;
     text-align: left;
     font-weight: 700;
     color: var(--text-primary);
@@ -242,31 +211,27 @@ include '../../includes/header.php';
 }
 
 .bookings-table td {
-    padding: 0.6rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    color: var(--text-secondary);
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
 
 .bookings-table tbody tr {
-    transition: all 0.3s ease;
+    transition: background 0.2s ease;
 }
 
 .bookings-table tbody tr:hover {
-    background: rgba(99, 102, 241, 0.08);
+    background: var(--bg-secondary);
 }
 
-/* Badges */
+/* Badge */
 .badge {
     display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.85rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
     text-transform: uppercase;
-}
-
-.badge-status {
-    padding: 0.45rem 0.9rem;
 }
 
 .badge-confirmed {
@@ -284,192 +249,95 @@ include '../../includes/header.php';
     color: #3b82f6;
 }
 
-.badge-checked-out {
-    background: rgba(156, 163, 175, 0.2);
-    color: #9ca3af;
-}
-
-.badge-cancelled {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-}
-
-.badge-payment-paid {
+.badge-paid {
     background: rgba(16, 185, 129, 0.2);
     color: #10b981;
 }
 
-.badge-payment-partial {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-}
-
-.badge-payment-unpaid {
+.badge-unpaid {
     background: rgba(239, 68, 68, 0.2);
     color: #ef4444;
-}
-
-/* OTA Badge */
-.ota-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 10px;
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.ota-badge .fee {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.2rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    margin-left: 0.5rem;
-}
-
-/* Price Breakdown */
-.price-breakdown {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    font-size: 0.85rem;
-}
-
-.price-item {
-    display: flex;
-    justify-content: space-between;
-}
-
-.price-gross {
-    color: var(--text-secondary);
-}
-
-.price-fee {
-    color: #ef4444;
-}
-
-.price-net {
-    font-weight: 700;
-    color: var(--text-primary);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 0.35rem;
-    margin-top: 0.35rem;
-}
-
-/* Room Badge */
-.room-badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 700;
 }
 
 /* Actions */
 .row-actions {
     display: flex;
-    gap: 0.3rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
 }
 
 .action-btn {
-    padding: 0.4rem 0.7rem;
+    padding: 0.3rem 0.6rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 0.7rem;
     font-weight: 600;
-    transition: all 0.3s ease;
-    background: rgba(99, 102, 241, 0.2);
+    transition: all 0.2s ease;
+    background: #f3f4f6;
     color: #6366f1;
+    border: 1px solid #e5e7eb;
     white-space: nowrap;
 }
 
 .action-btn:hover {
-    background: rgba(99, 102, 241, 0.4);
+    background: #6366f1;
+    color: white;
+    border-color: #6366f1;
 }
 
 .action-btn.action-cancel {
-    background: rgba(245, 158, 11, 0.2);
     color: #f59e0b;
+    border-color: #fcd34d;
 }
 
 .action-btn.action-cancel:hover {
-    background: rgba(245, 158, 11, 0.4);
+    background: #f59e0b;
+    color: white;
+    border-color: #f59e0b;
 }
 
 .action-btn.action-delete {
-    background: rgba(239, 68, 68, 0.2);
     color: #ef4444;
+    border-color: #fca5a5;
 }
 
 .action-btn.action-delete:hover {
-    background: rgba(239, 68, 68, 0.4);
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
 }
 
-/* Empty State */
 .empty-state {
     text-align: center;
-    padding: 4rem 2rem;
+    padding: 3rem;
     color: var(--text-secondary);
+}
+
+.room-badge {
+    display: inline-block;
+    background: #e5e7eb;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #374151;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .reservasi-container {
-        padding: 1.5rem 1rem;
-    }
-
     .reservasi-header {
         flex-direction: column;
         align-items: flex-start;
     }
-
-    .reservasi-header h1 {
-        font-size: 2rem;
-    }
-
-    .filter-section {
-        grid-template-columns: 1fr;
-    }
-
+    
     .bookings-table {
-        font-size: 0.85rem;
+        font-size: 0.7rem;
     }
-
+    
     .bookings-table th,
     .bookings-table td {
-        padding: 0.75rem;
-    }
-
-    .price-breakdown {
-        font-size: 0.75rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .header-actions {
-        width: 100%;
-    }
-
-    .btn-primary {
-        width: 100%;
-    }
-
-    .bookings-table-wrapper {
-        padding: 1rem;
-    }
-
-    .row-actions {
-        flex-direction: column;
-    }
-
-    .action-btn {
-        width: 100%;
+        padding: 0.5rem;
     }
 }
 </style>
@@ -484,13 +352,13 @@ include '../../includes/header.php';
             <button class="btn-primary" onclick="openNewBookingModal()">
                 ➕ New Booking
             </button>
-            <button class="btn-primary btn-secondary" onclick="window.location='calendar.php'">
+            <button class="btn-primary" onclick="window.location='calendar.php'">
                 📆 Calendar View
             </button>
-            <button class="btn-primary btn-secondary" onclick="window.location='breakfast.php'">
+            <button class="btn-primary" onclick="window.location='breakfast.php'">
                 🍽️ Breakfast List
             </button>
-            <button class="btn-primary btn-secondary" onclick="window.location='settings.php'">
+            <button class="btn-primary" onclick="window.location='settings.php'">
                 ⚙️ Settings
             </button>
             <button class="btn-primary btn-secondary" onclick="window.location='dashboard.php'">
@@ -675,7 +543,7 @@ function viewBooking(id) {
 }
 
 function editBooking(id) {
-    alert('Coming Soon: Edit Booking #' + id);
+    window.location.href = 'edit-booking.php?id=' + id;
 }
 
 function cancelBooking(id, bookingCode) {
