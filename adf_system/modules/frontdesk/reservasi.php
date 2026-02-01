@@ -117,7 +117,7 @@ include '../../includes/header.php';
 .reservasi-container {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 3rem 2rem;
+    padding: 1.5rem 1rem;
 }
 
 /* Header */
@@ -125,12 +125,12 @@ include '../../includes/header.php';
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3rem;
-    gap: 2rem;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
 }
 
 .reservasi-header h1 {
-    font-size: 2.5rem;
+    font-size: 1.6rem;
     font-weight: 950;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     -webkit-background-clip: text;
@@ -141,26 +141,26 @@ include '../../includes/header.php';
 
 .header-actions {
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .btn-primary {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: white;
-    padding: 0.875rem 2rem;
+    padding: 0.5rem 1rem;
     border: none;
-    border-radius: 12px;
-    font-weight: 700;
+    border-radius: 8px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
-    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    font-size: 0.85rem;
 }
 
 .btn-primary:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 40px rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
 }
 
 .btn-secondary {
@@ -173,12 +173,13 @@ include '../../includes/header.php';
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
 }
 
 .filter-group {
@@ -215,34 +216,34 @@ include '../../includes/header.php';
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 2rem;
+    border-radius: 12px;
+    padding: 1rem;
     overflow-x: auto;
 }
 
 .bookings-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
 }
 
 .bookings-table thead {
-    border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 .bookings-table th {
-    padding: 1.25rem;
+    padding: 0.6rem;
     text-align: left;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 1px;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
 }
 
 .bookings-table td {
-    padding: 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--text-secondary);
 }
 
@@ -371,19 +372,21 @@ include '../../includes/header.php';
 /* Actions */
 .row-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.3rem;
+    flex-wrap: wrap;
 }
 
 .action-btn {
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.7rem;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     font-weight: 600;
     transition: all 0.3s ease;
     background: rgba(99, 102, 241, 0.2);
     color: #6366f1;
+    white-space: nowrap;
 }
 
 .action-btn:hover {
