@@ -609,23 +609,6 @@ function deleteBooking(id, bookingCode) {
         console.error('Error:', error);
     });
 }
-    </a>
-</div>
-
-<div class="card coming-soon">
-    <div class="coming-soon-icon">
-        <i data-feather="calendar" style="width: 60px; height: 60px; color: white;"></i>
-    </div>
-    <h3 style="font-size: 2rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem;">
-        Coming Soon
-    </h3>
-    <p style="color: var(--text-muted); font-size: 1rem; max-width: 500px; margin: 0 auto;">
-        Halaman Reservasi sedang dalam pengembangan. Fitur ini akan memungkinkan Anda untuk membuat booking baru, melihat daftar reservasi, konfirmasi booking, dan mengelola status reservasi tamu.
-    </p>
-</div>
-
-<script>
-feather.replace();
 </script>
 
 <?php include '../../includes/footer.php'; ?>
