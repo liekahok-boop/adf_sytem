@@ -66,16 +66,6 @@ try {
     $stmt = $pdo->prepare("DELETE FROM bookings WHERE id = ?");
     $stmt->execute([$bookingId]);
     
-    // Log activity
-    $logStmt = $pdo->prepare("INSERT INTO activity_log (user_id, action, module, description, created_at) 
-                              VALUES (?, ?, ?, ?, NOW())");
-    $logStmt->execute([
-        $currentUser['id'],
-        'DELETE_BOOKING',
-        'frontdesk',
-        "Deleted booking {$booking['booking_code']}"
-    ]);
-    
     // Commit transaction
     $pdo->commit();
     

@@ -575,6 +575,349 @@ include '../../includes/header.php';
 }
 
 /* ============================================
+   PREMIUM REVENUE STATUS - LUXURY DESIGN
+   ============================================ */
+
+.revenue-premium-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 2px solid transparent;
+    background-image: 
+        linear-gradient(var(--glass-bg), var(--glass-bg)),
+        linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(236, 72, 153, 0.4));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border-radius: 24px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.12),
+        0 20px 60px rgba(99, 102, 241, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    animation: fadeInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.revenue-premium-container::before {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: -100%;
+    width: 300%;
+    height: 300%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 40%);
+    animation: revenueGlow 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes revenueGlow {
+    0%, 100% { 
+        transform: translate(0, 0) scale(1);
+        opacity: 0.5;
+    }
+    50% { 
+        transform: translate(10%, 10%) scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+.revenue-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.revenue-title {
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 0.5rem 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.3));
+}
+
+.revenue-icon {
+    font-size: 2.5rem;
+    -webkit-text-fill-color: initial;
+    background: none;
+    display: inline-block;
+    animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+
+.revenue-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0;
+    letter-spacing: 0.3px;
+}
+
+.revenue-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.revenue-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 2px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.revenue-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, currentColor, transparent);
+    opacity: 0.05;
+    transition: all 0.6s ease;
+    pointer-events: none;
+}
+
+.revenue-card:hover::before {
+    top: 0;
+    right: 0;
+    opacity: 0.1;
+}
+
+.revenue-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+        0 16px 48px rgba(0, 0, 0, 0.15),
+        0 20px 60px currentColor,
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.revenue-card-actual {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.revenue-card-actual:hover {
+    border-color: rgba(34, 197, 94, 0.6);
+    box-shadow: 
+        0 16px 48px rgba(34, 197, 94, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.revenue-card-expected {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.revenue-card-expected:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 
+        0 16px 48px rgba(59, 130, 246, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.revenue-card-total {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.revenue-card-total:hover {
+    border-color: rgba(245, 158, 11, 0.6);
+    box-shadow: 
+        0 16px 48px rgba(245, 158, 11, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.revenue-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.revenue-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    background: var(--glass-bg);
+    border: 2px solid currentColor;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px currentColor;
+    transition: all 0.4s ease;
+}
+
+.revenue-card:hover .revenue-card-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 8px 24px currentColor;
+}
+
+.revenue-card-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, currentColor);
+    opacity: 0.1;
+}
+
+.revenue-card-badge {
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.revenue-badge-expected {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.revenue-badge-total {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.revenue-card-body {
+    margin-bottom: 1.5rem;
+}
+
+.revenue-card-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin: 0 0 0.75rem 0;
+}
+
+.revenue-card-amount {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    word-break: break-all;
+}
+
+.revenue-card-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+    font-weight: 500;
+}
+
+.revenue-card-footer {
+    margin-top: auto;
+}
+
+.revenue-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+[data-theme="dark"] .revenue-progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.revenue-progress-fill {
+    height: 100%;
+    border-radius: 20px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.revenue-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: progressShine 2s infinite;
+}
+
+@keyframes progressShine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.revenue-progress-actual {
+    background: linear-gradient(90deg, #22c55e, #10b981);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
+
+.revenue-progress-expected {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.revenue-stats-mini {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-around;
+}
+
+.revenue-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-mini-icon {
+    font-size: 1.5rem;
+}
+
+.stat-mini-value {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+}
+
+/* ============================================
    GUESTS TABLE - PREMIUM STYLE
    ============================================ */
 
@@ -757,6 +1100,19 @@ include '../../includes/header.php';
     .stat-value {
         font-size: 2.5rem;
     }
+
+    .revenue-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .revenue-title {
+        font-size: 1.75rem;
+    }
+
+    .revenue-card-amount {
+        font-size: 1.5rem;
+    }
 }
 
 @media (max-width: 768px) {
@@ -802,6 +1158,28 @@ include '../../includes/header.php';
     .guests-table th,
     .guests-table td {
         padding: 0.85rem;
+    }
+
+    .revenue-premium-container {
+        padding: 1.5rem;
+    }
+
+    .revenue-title {
+        font-size: 1.5rem;
+    }
+
+    .revenue-card {
+        padding: 1.25rem;
+    }
+
+    .revenue-card-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.75rem;
+    }
+
+    .revenue-card-amount {
+        font-size: 1.35rem;
     }
 }
 
@@ -849,6 +1227,63 @@ include '../../includes/header.php';
     .chart-card h3,
     .guests-card h3 {
         font-size: 0.9rem;
+    }
+
+    .revenue-premium-container {
+        padding: 1rem;
+        border-radius: 16px;
+    }
+
+    .revenue-header {
+        margin-bottom: 1.25rem;
+    }
+
+    .revenue-title {
+        font-size: 1.25rem;
+    }
+
+    .revenue-icon {
+        font-size: 1.75rem;
+    }
+
+    .revenue-subtitle {
+        font-size: 0.75rem;
+    }
+
+    .revenue-cards-grid {
+        gap: 1rem;
+    }
+
+    .revenue-card {
+        padding: 1rem;
+        border-radius: 16px;
+    }
+
+    .revenue-card-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 1.5rem;
+    }
+
+    .revenue-card-badge {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.6rem;
+    }
+
+    .revenue-card-amount {
+        font-size: 1.15rem;
+    }
+
+    .revenue-card-desc {
+        font-size: 0.7rem;
+    }
+
+    .stat-mini-icon {
+        font-size: 1.25rem;
+    }
+
+    .stat-mini-value {
+        font-size: 0.85rem;
     }
 }
 </style>
@@ -899,24 +1334,90 @@ include '../../includes/header.php';
                 <canvas id="occupancyChart"></canvas>
             </div>
         </div>
+    </div>
 
-        <!-- Revenue Comparison -->
-        <div class="chart-card" style="padding: 0.85rem; border-radius: 12px;">
-            <h3 style="font-size: 0.85rem; margin-bottom: 0.5rem;">💵 Revenue Status</h3>
-            <div class="revenue-widget" style="border: none; background: transparent; padding: 0; border-radius: 0;">
-                <div class="revenue-item revenue-actual">
-                    <div class="revenue-label" style="font-size: 0.65rem;">💚 Actual Revenue</div>
-                    <div class="revenue-value" style="font-size: 1.25rem;">
-                        Rp <?php echo number_format($stats['revenue_today'], 0, ',', '.'); ?>
+    <!-- Premium Revenue Status Section - Below Pie Chart -->
+    <div class="revenue-premium-container">
+        <div class="revenue-header">
+            <h2 class="revenue-title">
+                <span class="revenue-icon">💎</span>
+                Revenue Overview
+            </h2>
+            <p class="revenue-subtitle">Real-time financial performance tracking</p>
+        </div>
+        
+        <div class="revenue-cards-grid">
+            <!-- Actual Revenue Card -->
+            <div class="revenue-card revenue-card-actual">
+                <div class="revenue-card-header">
+                    <div class="revenue-card-icon">
+                        <span>💰</span>
                     </div>
-                    <div style="font-size: 0.6rem; color: var(--text-secondary);">Today Payment</div>
+                    <div class="revenue-card-badge">Today</div>
                 </div>
-                <div class="revenue-item revenue-expected">
-                    <div class="revenue-label" style="font-size: 0.65rem;">💙 Expected Revenue</div>
-                    <div class="revenue-value" style="font-size: 1.25rem;">
-                        Rp <?php echo number_format($stats['expected_revenue'], 0, ',', '.'); ?>
+                <div class="revenue-card-body">
+                    <p class="revenue-card-label">Actual Revenue</p>
+                    <h3 class="revenue-card-amount">
+                        Rp <?php echo number_format($stats['revenue_today'], 0, ',', '.'); ?>
+                    </h3>
+                    <p class="revenue-card-desc">Payments received today</p>
+                </div>
+                <div class="revenue-card-footer">
+                    <div class="revenue-progress-bar">
+                        <div class="revenue-progress-fill revenue-progress-actual" style="width: 100%;"></div>
                     </div>
-                    <div style="font-size: 0.6rem; color: var(--text-secondary);">All Active Bookings</div>
+                </div>
+            </div>
+
+            <!-- Expected Revenue Card -->
+            <div class="revenue-card revenue-card-expected">
+                <div class="revenue-card-header">
+                    <div class="revenue-card-icon">
+                        <span>📊</span>
+                    </div>
+                    <div class="revenue-card-badge revenue-badge-expected">Pending</div>
+                </div>
+                <div class="revenue-card-body">
+                    <p class="revenue-card-label">Expected Revenue</p>
+                    <h3 class="revenue-card-amount">
+                        Rp <?php echo number_format($stats['expected_revenue'], 0, ',', '.'); ?>
+                    </h3>
+                    <p class="revenue-card-desc">From active bookings</p>
+                </div>
+                <div class="revenue-card-footer">
+                    <div class="revenue-progress-bar">
+                        <div class="revenue-progress-fill revenue-progress-expected" 
+                             style="width: <?php echo $stats['expected_revenue'] > 0 ? min(100, ($stats['revenue_today'] / $stats['expected_revenue']) * 100) : 0; ?>%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Revenue Card -->
+            <div class="revenue-card revenue-card-total">
+                <div class="revenue-card-header">
+                    <div class="revenue-card-icon">
+                        <span>🏆</span>
+                    </div>
+                    <div class="revenue-card-badge revenue-badge-total">Combined</div>
+                </div>
+                <div class="revenue-card-body">
+                    <p class="revenue-card-label">Total Potential</p>
+                    <h3 class="revenue-card-amount">
+                        Rp <?php echo number_format($stats['revenue_today'] + $stats['expected_revenue'], 0, ',', '.'); ?>
+                    </h3>
+                    <p class="revenue-card-desc">Actual + Expected revenue</p>
+                </div>
+                <div class="revenue-card-footer">
+                    <div class="revenue-stats-mini">
+                        <div class="revenue-stat-item">
+                            <span class="stat-mini-icon">✅</span>
+                            <span class="stat-mini-value"><?php echo $stats['expected_revenue'] > 0 ? round(($stats['revenue_today'] / ($stats['revenue_today'] + $stats['expected_revenue'])) * 100, 1) : 0; ?>%</span>
+                        </div>
+                        <div class="revenue-stat-item">
+                            <span class="stat-mini-icon">⏳</span>
+                            <span class="stat-mini-value"><?php echo $stats['expected_revenue'] > 0 ? round(($stats['expected_revenue'] / ($stats['revenue_today'] + $stats['expected_revenue'])) * 100, 1) : 0; ?>%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

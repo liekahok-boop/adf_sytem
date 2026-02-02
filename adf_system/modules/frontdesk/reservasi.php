@@ -138,13 +138,13 @@ include '../../includes/header.php';
 .btn-primary {
     background: #6366f1;
     color: white;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.85rem;
     border: none;
     border-radius: 6px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .btn-primary:hover {
@@ -192,7 +192,7 @@ include '../../includes/header.php';
 .bookings-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 }
 
 .bookings-table thead {
@@ -201,17 +201,17 @@ include '../../includes/header.php';
 }
 
 .bookings-table th {
-    padding: 0.75rem;
+    padding: 0.5rem 0.65rem;
     text-align: left;
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
 }
 
 .bookings-table td {
-    padding: 0.75rem;
+    padding: 0.5rem 0.65rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
 }
@@ -227,10 +227,10 @@ include '../../includes/header.php';
 /* Badge */
 .badge {
     display: inline-block;
-    padding: 0.3rem 0.7rem;
+    padding: 0.25rem 0.6rem;
     border-radius: 4px;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
 }
 
@@ -320,8 +320,49 @@ include '../../includes/header.php';
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #374151;
+}
+
+.ota-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.7rem;
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.ota-badge .fee {
+    color: #dc2626;
+    font-weight: 700;
+    margin-left: 0.25rem;
+}
+
+.price-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.price-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.price-gross {
+    color: var(--text-secondary);
+}
+
+.price-fee {
+    color: #dc2626;
+}
+
+.price-net {
+    font-weight: 700;
+    color: #059669;
 }
 
 /* Responsive */
@@ -346,23 +387,23 @@ include '../../includes/header.php';
     <!-- Header -->
     <div class="reservasi-header">
         <div>
-            <h1>📅 Reservasi Management</h1>
+            <h1>Reservasi Management</h1>
         </div>
         <div class="header-actions">
             <button class="btn-primary" onclick="openNewBookingModal()">
-                ➕ New Booking
+                New Booking
             </button>
             <button class="btn-primary" onclick="window.location='calendar.php'">
-                📆 Calendar View
+                Calendar View
             </button>
             <button class="btn-primary" onclick="window.location='breakfast.php'">
-                🍽️ Breakfast List
+                Breakfast List
             </button>
             <button class="btn-primary" onclick="window.location='settings.php'">
-                ⚙️ Settings
+                Settings
             </button>
             <button class="btn-primary btn-secondary" onclick="window.location='dashboard.php'">
-                🏠 Dashboard
+                Dashboard
             </button>
         </div>
     </div>
@@ -421,8 +462,8 @@ include '../../includes/header.php';
                     <td>
                         <div>
                             <strong><?php echo htmlspecialchars($booking['guest_name']); ?></strong>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                                📞 <?php echo htmlspecialchars($booking['phone'] ?? '-'); ?>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                <?php echo htmlspecialchars($booking['phone'] ?? '-'); ?>
                             </div>
                         </div>
                     </td>
@@ -430,17 +471,17 @@ include '../../includes/header.php';
                     <!-- Room -->
                     <td>
                         <span class="room-badge">
-                            🚪 <?php echo htmlspecialchars($booking['room_number']); ?>
+                            <?php echo htmlspecialchars($booking['room_number']); ?>
                         </span>
-                        <div style="font-size: 0.85rem; margin-top: 0.25rem;">
+                        <div style="font-size: 0.7rem; margin-top: 0.25rem;">
                             <?php echo htmlspecialchars($booking['type_name']); ?>
                         </div>
                     </td>
 
                     <!-- Dates -->
                     <td>
-                        <div style="font-size: 0.9rem;">
-                            📍 <?php echo date('d M', strtotime($booking['check_in_date'])); ?> →
+                        <div style="font-size: 0.75rem;">
+                            <?php echo date('d M', strtotime($booking['check_in_date'])); ?> -
                             <?php echo date('d M', strtotime($booking['check_out_date'])); ?>
                         </div>
                     </td>
@@ -453,7 +494,7 @@ include '../../includes/header.php';
                     <!-- OTA Source -->
                     <td>
                         <span class="ota-badge">
-                            <?php echo $otaIcon; ?> <?php echo $otaName; ?>
+                            <?php echo $otaName; ?>
                             <?php if ($otaFee > 0): ?>
                             <span class="fee">-<?php echo $otaFee; ?>%</span>
                             <?php endif; ?>
@@ -462,7 +503,7 @@ include '../../includes/header.php';
 
                     <!-- Price Breakdown -->
                     <td>
-                        <div class="price-breakdown">
+                        <div class="price-breakdown" style="font-size: 0.75rem;">
                             <div class="price-item price-gross">
                                 <span>Gross:</span>
                                 <span>Rp <?php echo number_format($netIncome['gross'], 0, ',', '.'); ?></span>
@@ -474,7 +515,7 @@ include '../../includes/header.php';
                             </div>
                             <?php endif; ?>
                             <div class="price-item price-net">
-                                <span>Net Income:</span>
+                                <span>Net:</span>
                                 <span>Rp <?php echo number_format($netIncome['net'], 0, ',', '.'); ?></span>
                             </div>
                         </div>
@@ -492,7 +533,7 @@ include '../../includes/header.php';
                         <span class="badge badge-payment-<?php echo str_replace('_', '-', $booking['payment_status']); ?>">
                             <?php echo ucfirst($booking['payment_status']); ?>
                         </span>
-                        <div style="font-size: 0.8rem; margin-top: 0.25rem;">
+                        <div style="font-size: 0.7rem; margin-top: 0.25rem;">
                             Rp <?php echo number_format($booking['paid_amount'], 0, ',', '.'); ?>
                         </div>
                     </td>
@@ -501,17 +542,17 @@ include '../../includes/header.php';
                     <td>
                         <div class="row-actions">
                             <button class="action-btn" onclick="viewBooking(<?php echo $booking['id']; ?>)">
-                                👁️ View
+                                View
                             </button>
                             <button class="action-btn" onclick="editBooking(<?php echo $booking['id']; ?>)">
-                                ✏️ Edit
+                                Edit
                             </button>
                             <?php if ($booking['status'] !== 'checked_in' && $booking['status'] !== 'checked_out'): ?>
                             <button class="action-btn action-cancel" onclick="cancelBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['booking_code']); ?>')">
-                                ❌ Cancel
+                                Cancel
                             </button>
                             <button class="action-btn action-delete" onclick="deleteBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['booking_code']); ?>')">
-                                🗑️ Delete
+                                Delete
                             </button>
                             <?php endif; ?>
                         </div>
@@ -522,7 +563,7 @@ include '../../includes/header.php';
         </table>
         <?php else: ?>
         <div class="empty-state">
-            <p style="font-size: 1.1rem;">📭 Tidak ada reservasi</p>
+            <p style="font-size: 1.1rem;">Tidak ada reservasi</p>
         </div>
         <?php endif; ?>
     </div>
@@ -547,7 +588,7 @@ function editBooking(id) {
 }
 
 function cancelBooking(id, bookingCode) {
-    if (!confirm(`⚠️ Yakin ingin CANCEL reservasi ${bookingCode}?\n\nStatus akan berubah menjadi CANCELLED`)) {
+    if (!confirm(`Yakin ingin CANCEL reservasi ${bookingCode}?\n\nStatus akan berubah menjadi CANCELLED`)) {
         return;
     }
     
@@ -563,26 +604,20 @@ function cancelBooking(id, bookingCode) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Reservasi berhasil di-CANCEL');
+            alert('Reservasi berhasil di-CANCEL');
             location.reload();
         } else {
-            alert('❌ Error: ' + data.message);
+            alert('Error: ' + data.message);
         }
     })
     .catch(error => {
-        alert('❌ Error: ' + error.message);
+        alert('Error: ' + error.message);
         console.error('Error:', error);
     });
 }
 
 function deleteBooking(id, bookingCode) {
-    if (!confirm(`⚠️ PERINGATAN: Ingin menghapus reservasi ${bookingCode}?\n\nAksi ini TIDAK BISA DIBATALKAN!\n\nData akan dihapus permanen dari sistem.`)) {
-        return;
-    }
-    
-    const confirmDelete = prompt(`Ketik "HAPUS" untuk menghapus reservasi ${bookingCode}:`);
-    if (confirmDelete !== 'HAPUS') {
-        alert('Pembatalan dihapus. Data tetap aman.');
+    if (!confirm(`PERINGATAN: Yakin ingin menghapus reservasi ${bookingCode}?\n\nAksi ini TIDAK BISA DIBATALKAN!\n\nData akan dihapus permanen dari sistem.`)) {
         return;
     }
     
@@ -598,14 +633,14 @@ function deleteBooking(id, bookingCode) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Reservasi berhasil dihapus permanen');
+            alert('Reservasi berhasil dihapus permanen');
             location.reload();
         } else {
-            alert('❌ Error: ' + data.message);
+            alert('Error: ' + data.message);
         }
     })
     .catch(error => {
-        alert('❌ Error: ' + error.message);
+        alert('Error: ' + error.message);
         console.error('Error:', error);
     });
 }
