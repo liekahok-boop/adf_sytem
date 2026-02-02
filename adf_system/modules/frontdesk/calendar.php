@@ -845,13 +845,13 @@ body[data-theme="light"] .grid-date-cell {
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(5px);
-    z-index: 100;
+    z-index: 9999;
     align-items: center;
     justify-content: center;
 }
 
 .modal-overlay.active {
-    display: flex;
+    display: flex !important;
 }
 
 .modal-content {
@@ -864,7 +864,7 @@ body[data-theme="light"] .grid-date-cell {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    z-index: 101;
+    z-index: 10000;
 }
 
 body[data-theme="light"] .modal-content {
@@ -2178,9 +2178,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Open modal
+        // Open modal with small delay to ensure DOM is ready
         console.log('🚀 Opening modal...');
+        
+        // Add active class
         modal.classList.add('active');
+        
+        // Force visibility check
+        setTimeout(() => {
+            const isVisible = modal.classList.contains('active');
+            const displayStyle = window.getComputedStyle(modal).display;
+            console.log('✅ Modal state - Active class:', isVisible, 'Display:', displayStyle);
+            
+            if (displayStyle === 'none') {
+                console.error('❌ Modal is not visible! Force showing...');
+                modal.style.display = 'flex';
+                modal.style.zIndex = '9999';
+            }
+        }, 100);
         
         // Initialize Total Pax with default values
         const adultInput = document.getElementById('adultCount');
