@@ -2181,20 +2181,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Open modal with small delay to ensure DOM is ready
         console.log('🚀 Opening modal...');
         
+        // Force modal to be visible with inline styles
+        modal.style.display = 'flex';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.right = '0';
+        modal.style.bottom = '0';
+        modal.style.zIndex = '99999';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        
         // Add active class
         modal.classList.add('active');
+        
+        console.log('✅ Modal forced to display');
         
         // Force visibility check
         setTimeout(() => {
             const isVisible = modal.classList.contains('active');
             const displayStyle = window.getComputedStyle(modal).display;
-            console.log('✅ Modal state - Active class:', isVisible, 'Display:', displayStyle);
-            
-            if (displayStyle === 'none') {
-                console.error('❌ Modal is not visible! Force showing...');
-                modal.style.display = 'flex';
-                modal.style.zIndex = '9999';
-            }
+            const zIndex = window.getComputedStyle(modal).zIndex;
+            console.log('✅ Modal state - Active:', isVisible, 'Display:', displayStyle, 'Z-index:', zIndex);
         }, 100);
         
         // Initialize Total Pax with default values
