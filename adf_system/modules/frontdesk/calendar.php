@@ -1863,6 +1863,14 @@ function closeReservationModal() {
     const modal = document.getElementById('reservationModal');
     modal.classList.remove('active');
     document.getElementById('reservationForm').reset();
+    
+    // Reset Total Pax to default values
+    const adultInput = document.getElementById('adultCount');
+    const childrenInput = document.getElementById('childrenCount');
+    if (adultInput) adultInput.value = 1;
+    if (childrenInput) childrenInput.value = 0;
+    calculateTotalPax();
+    
     selectedDate = null;
     selectedRoom = null;
 }
@@ -1973,11 +1981,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const roomSelect = document.getElementById('roomSelect');
     const roomPriceInput = document.getElementById('roomPrice');
     const discountInput = document.getElementById('discount');
+    const adultInput = document.getElementById('adultCount');
+    const childrenInput = document.getElementById('childrenCount');
     
     if (checkInDate) checkInDate.addEventListener('change', calculateNights);
     if (checkOutDate) checkOutDate.addEventListener('change', calculateNights);
     if (roomPriceInput) roomPriceInput.addEventListener('input', calculatePrice);
     if (discountInput) discountInput.addEventListener('input', calculatePrice);
+    if (adultInput) adultInput.addEventListener('change', calculateTotalPax);
+    if (childrenInput) childrenInput.addEventListener('change', calculateTotalPax);
     
     if (roomSelect) {
         roomSelect.addEventListener('change', function() {
@@ -2169,6 +2181,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Open modal
         console.log('🚀 Opening modal...');
         modal.classList.add('active');
+        
+        // Initialize Total Pax with default values
+        const adultInput = document.getElementById('adultCount');
+        const childrenInput = document.getElementById('childrenCount');
+        if (adultInput && !adultInput.value) {
+            adultInput.value = 1;
+        }
+        if (childrenInput && !childrenInput.value) {
+            childrenInput.value = 0;
+        }
+        calculateTotalPax();
+        
         console.log('✅ Modal opened!');
     });
 });
