@@ -1530,18 +1530,173 @@ function viewBooking(id, event) {
     
     // Fetch booking details via AJAX - use relative path from modules/frontdesk/
     fetch('../../api/get-booking-details.php?id=' + id)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showBookingDetailsModal(data.booking);
-            } else {
-                alert('Error: ' + data.message);
+        .then(response => {
+            console.log('📡 API Response status:', response.status);
+            return response.text();
+        })
+        .then(text => {
+            console.log('📥 API Response text:', text);
+            try {
+                const data = JSON.parse(text);
+                console.log('✅ Parsed JSON:', data);
+                if (data.success) {
+                    console.log('🎯 Showing booking:', data.booking);
+                    showBookingQuickView(data.booking);
+                } else {
+                    console.error('❌ API Error:', data.message);
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                console.error('❌ JSON Parse Error:', e);
+                console.error('Raw text:', text);
+                alert('Failed to parse response');
             }
         })
         .catch(error => {
-            console.error('Error fetching booking:', error);
+            console.error('❌ Fetch Error:', error);
             alert('Failed to load booking details: ' + error.message);
         });
+}
+
+// Quick view popup - simple and elegant
+function showBookingQuickView(booking) {
+    console.log('🎯 showBookingQuickView called with:', booking);
+    
+    const modal = document.getElementById('bookingQuickView');
+    console.log('📦 Modal element found:', modal);
+    
+    if (!modal) {
+        console.error('❌ Modal not found!');
+        alert('Error: Modal element not found');
+        return;
+    }
+    
+    // Format data
+    const checkIn = new Date(booking.check_in_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    const checkOut = new Date(booking.check_out_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    const totalPrice = new Intl.NumberFormat('id-ID').format(booking.final_price);
+    const paidAmount = new Intl.NumberFormat('id-ID').format(booking.paid_amount);
+    const remaining = new Intl.NumberFormat('id-ID').format(booking.final_price - booking.paid_amount);
+    
+    // Payment status badge color
+    let paymentBadge = '';
+    if (booking.payment_status === 'paid') {
+        paymentBadge = '<span style="background: #10b981; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">LUNAS</span>';
+    } else if (booking.payment_status === 'partial') {
+        paymentBadge = '<span style="background: #f59e0b; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">CICILAN</span>';
+    } else {
+        paymentBadge = '<span style="background: #ef4444; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">BELUM BAYAR</span>';
+    }
+    
+    // Booking source
+    const sourceMap = {
+        'walk_in': 'Walk-in',
+        'phone': 'Phone',
+        'online': 'Online',
+        'ota': 'OTA'
+    };
+    const source = sourceMap[booking.booking_source] || booking.booking_source;
+    
+    // Populate modal
+    document.getElementById('qv-content').innerHTML = `
+        <div style="text-align: center; padding-bottom: 0.75rem; border-bottom: 2px solid rgba(99, 102, 241, 0.2);">
+            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem;">BOOKING CODE</div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #6366f1; font-family: 'Courier New', monospace;">${booking.booking_code}</div>
+        </div>
+        
+        <div style="padding: 0.75rem 0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.25rem;">👤</span>
+                <div style="flex: 1;">
+                    <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">Tamu</div>
+                    <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary);">${booking.guest_name}</div>
+                </div>
+            </div>
+            
+            ${booking.guest_phone ? `
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.25rem;">📞</span>
+                <div style="flex: 1;">
+                    <div style="font-size: 0.65rem; color: var(--text-secondary);">Phone</div>
+                    <div style="font-size: 0.85rem; color: var(--text-primary);">${booking.guest_phone}</div>
+                </div>
+            </div>
+            ` : ''}
+            
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.25rem;">🏠</span>
+                <div style="flex: 1;">
+                    <div style="font-size: 0.65rem; color: var(--text-secondary);">Room</div>
+                    <div style="font-size: 0.85rem; color: var(--text-primary); font-weight: 600;">Room ${booking.room_number} - ${booking.room_type}</div>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.25rem;">📅</span>
+                <div style="flex: 1;">
+                    <div style="font-size: 0.65rem; color: var(--text-secondary);">Check-in / Check-out</div>
+                    <div style="font-size: 0.8rem; color: var(--text-primary);">${checkIn} → ${checkOut}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">${booking.total_nights} malam • ${source}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: rgba(99, 102, 241, 0.05); border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600;">STATUS PEMBAYARAN</div>
+                ${paymentBadge}
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Total Harga:</span>
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Rp ${totalPrice}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Sudah Bayar:</span>
+                <span style="font-size: 0.85rem; font-weight: 700; color: #10b981;">Rp ${paidAmount}</span>
+            </div>
+            
+            ${booking.payment_status !== 'paid' ? `
+            <div style="display: flex; justify-content: space-between; padding-top: 0.35rem; border-top: 1px dashed rgba(99, 102, 241, 0.3);">
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">Sisa:</span>
+                <span style="font-size: 0.9rem; font-weight: 800; color: #ef4444;">Rp ${remaining}</span>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    console.log('✅ Content populated');
+    
+    // Add active class FIRST to ensure CSS applies
+    modal.classList.add('active');
+    console.log('✅ Active class added');
+    
+    // Then set inline styles as fallback
+    modal.style.display = 'flex';
+    modal.style.position = 'fixed';
+    modal.style.zIndex = '99999';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.right = '0';
+    modal.style.bottom = '0';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    
+    console.log('✅ Modal should be visible now!', {
+        display: modal.style.display,
+        position: modal.style.position,
+        zIndex: modal.style.zIndex,
+        hasActiveClass: modal.classList.contains('active')
+    });
+}
+
+function closeBookingQuickView() {
+    const modal = document.getElementById('bookingQuickView');
+    modal.classList.remove('active');
+    modal.style.display = '';
+    modal.style.position = '';
+    modal.style.zIndex = '';
 }
 
 function showBookingDetailsModal(booking) {
@@ -2520,6 +2675,88 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+
+<!-- Quick View Modal - Compact & Elegant -->
+<div id="bookingQuickView" class="modal-overlay">
+    <div class="quick-view-popup">
+        <button class="quick-view-close" onclick="closeBookingQuickView()">×</button>
+        <div id="qv-content">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<style>
+/* Quick View Popup - Simple & Elegant */
+.quick-view-popup {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 380px;
+    padding: 1.25rem;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.1);
+    animation: quickViewIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@keyframes quickViewIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.quick-view-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+    font-weight: 300;
+}
+
+.quick-view-close:hover {
+    background: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+}
+
+/* Scrollbar styling for popup */
+.quick-view-popup::-webkit-scrollbar {
+    width: 6px;
+}
+
+.quick-view-popup::-webkit-scrollbar-track {
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 3px;
+}
+
+.quick-view-popup::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 3px;
+}
+
+.quick-view-popup::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
+}
+</style>
 
 <?php include '../../includes/footer.php'; ?>
 

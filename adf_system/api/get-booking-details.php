@@ -39,6 +39,8 @@ try {
             b.status,
             b.payment_status,
             b.booking_source,
+            COALESCE(b.adults, 1) as adults,
+            COALESCE(b.children, 0) as children,
             g.guest_name,
             g.phone as guest_phone,
             g.email as guest_email,
@@ -61,6 +63,13 @@ try {
         echo json_encode(['success' => false, 'message' => 'Booking not found with ID: ' . $bookingId]);
         exit;
     }
+    
+    // Calculate total paid from booking_payments
+    $paymentQuery = "SELECT COALESCE(SUM(amount), 0) as paid_amount FROM booking_payments WHERE booking_id = ?";
+    $paymentStmt = $conn->prepare($paymentQuery);
+    $paymentStmt->execute([$bookingId]);
+    $paymentResult = $paymentStmt->fetch(PDO::FETCH_ASSOC);
+    $booking['paid_amount'] = $paymentResult['paid_amount'];
     
     // Ensure all fields have values
     $booking['guest_phone'] = $booking['guest_phone'] ?? '-';

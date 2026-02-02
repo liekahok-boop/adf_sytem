@@ -51,14 +51,16 @@ try {
             b.id, b.booking_code, b.check_in_date, b.check_out_date,
             b.room_price, b.total_price, b.final_price, b.discount,
             b.status, b.payment_status, b.booking_source, b.total_nights,
-            b.paid_amount, b.special_request,
+            b.paid_amount, b.special_request, b.adults, b.children,
             g.guest_name, g.phone, g.email,
             r.room_number,
-            rt.type_name
+            rt.type_name,
+            COALESCE(SUM(bp.amount), 0) as total_paid
         FROM bookings b
-        JOIN guests g ON b.guest_id = g.id
-        JOIN rooms r ON b.room_id = r.id
-        JOIN room_types rt ON r.room_type_id = rt.id
+        LEFT JOIN guests g ON b.guest_id = g.id
+        LEFT JOIN rooms r ON b.room_id = r.id
+        LEFT JOIN room_types rt ON r.room_type_id = rt.id
+        LEFT JOIN booking_payments bp ON b.id = bp.booking_id
         WHERE 1=1
     ";
     
@@ -69,7 +71,8 @@ try {
         $params[] = $status_filter;
     }
     
-    $query .= " ORDER BY 
+    $query .= " GROUP BY b.id
+    ORDER BY 
         CASE 
             WHEN b.status = 'confirmed' THEN 1
             WHEN b.status = 'checked_in' THEN 2
@@ -533,8 +536,15 @@ include '../../includes/header.php';
                         <span class="badge badge-payment-<?php echo str_replace('_', '-', $booking['payment_status']); ?>">
                             <?php echo ucfirst($booking['payment_status']); ?>
                         </span>
-                        <div style="font-size: 0.7rem; margin-top: 0.25rem;">
-                            Rp <?php echo number_format($booking['paid_amount'], 0, ',', '.'); ?>
+                        <div style="font-size: 0.7rem; margin-top: 0.3rem; line-height: 1.4;">
+                            <div><span style="color: var(--text-secondary);">Total:</span> <strong>Rp <?php echo number_format($booking['final_price'], 0, ',', '.'); ?></strong></div>
+                            <div><span style="color: var(--text-secondary);">Bayar:</span> <strong style="color: #10b981;">Rp <?php echo number_format($booking['total_paid'], 0, ',', '.'); ?></strong></div>
+                            <?php 
+                                $remaining = $booking['final_price'] - $booking['total_paid'];
+                                if ($remaining > 0):
+                            ?>
+                            <div><span style="color: var(--text-secondary);">Sisa:</span> <strong style="color: #ef4444;">Rp <?php echo number_format($remaining, 0, ',', '.'); ?></strong></div>
+                            <?php endif; ?>
                         </div>
                     </td>
 
