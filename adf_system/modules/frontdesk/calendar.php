@@ -775,6 +775,14 @@ body[data-theme="light"] .grid-date-cell {
         flex-direction: column;
         gap: 1rem;
     }
+
+    .form-row-3 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .form-row-3 .form-group:last-child {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 480px) {
@@ -798,6 +806,16 @@ body[data-theme="light"] .grid-date-cell {
         font-size: 0.6rem;
         padding: 0.2rem;
         color: #ffffff !important;
+    }
+
+    .form-row-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row-3 .form-group:last-child {
+        grid-column: 1;
+    }
+}
     }
 
     .booking-bar-guest {
@@ -1134,7 +1152,7 @@ body[data-theme="light"] .detail-section {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.85rem;
 }
 
 body[data-theme="light"] .form-section {
@@ -1144,20 +1162,24 @@ body[data-theme="light"] .form-section {
 
 .form-section h3 {
     color: var(--text-primary);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.65rem;
     display: flex;
     align-items: center;
     gap: 0.4rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 0.75rem;
+}
+
+.form-row-3 {
+    grid-template-columns: repeat(3, 1fr);
 }
 
 .form-group {
@@ -1182,6 +1204,17 @@ body[data-theme="light"] .form-section {
     color: var(--text-primary);
     font-size: 0.85rem;
     transition: all 0.2s ease;
+}
+
+.readonly-input {
+    background: rgba(99, 102, 241, 0.1) !important;
+    cursor: not-allowed;
+    font-weight: 600;
+    color: #6366f1 !important;
+}
+
+body[data-theme="light"] .readonly-input {
+    background: rgba(99, 102, 241, 0.08) !important;
 }
 
 body[data-theme="light"] .form-group input,
@@ -1861,6 +1894,15 @@ function calculatePrice() {
     document.getElementById('finalPrice').textContent = 'Rp ' + final.toLocaleString('id-ID');
 }
 
+// Calculate Total Pax (Adult + Children)
+function calculateTotalPax() {
+    const adults = parseInt(document.getElementById('adultCount').value) || 0;
+    const children = parseInt(document.getElementById('childrenCount').value) || 0;
+    const totalPax = adults + children;
+    
+    document.getElementById('totalPax').value = totalPax;
+}
+
 function submitReservation(event) {
     event.preventDefault();
     
@@ -1878,7 +1920,7 @@ function submitReservation(event) {
     // Show loading
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '⏳ Saving...';
+    submitBtn.innerHTML = 'Saving...';
     submitBtn.disabled = true;
     
     // Submit via AJAX
@@ -1889,18 +1931,18 @@ function submitReservation(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Reservation created successfully!\nBooking Code: ' + data.booking_code);
+            alert('Reservation created successfully!\nBooking Code: ' + data.booking_code);
             closeReservationModal();
             location.reload(); // Reload to show new booking
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to create reservation'));
+            alert('Error: ' + (data.message || 'Failed to create reservation'));
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('❌ Connection error. Please try again.');
+        alert('Connection error. Please try again.');
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });
@@ -2085,7 +2127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <button class="modal-close" onclick="closeReservationModal()">×</button>
         
         <div class="modal-header">
-            <h2>➕ New Reservation</h2>
+            <h2>New Reservation</h2>
             <p>Fill in the guest and booking details</p>
         </div>
         
@@ -2093,7 +2135,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="form-grid">
                 <!-- Guest Information -->
                 <div class="form-section">
-                    <h3>👤 Guest Information</h3>
+                    <h3>Guest Information</h3>
                     <div class="form-group">
                         <label>Guest Name *</label>
                         <input type="text" id="guestName" name="guest_name" required placeholder="Enter guest name">
@@ -2116,7 +2158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <!-- Booking Details -->
                 <div class="form-section">
-                    <h3>📅 Booking Details</h3>
+                    <h3>Booking Details</h3>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Check-in Date *</label>
@@ -2144,24 +2186,38 @@ document.addEventListener('DOMContentLoaded', function() {
                             <input type="number" id="totalNights" name="total_nights" readonly value="0">
                         </div>
                     </div>
+                    <div class="form-row form-row-3">
+                        <div class="form-group">
+                            <label>Adult *</label>
+                            <input type="number" id="adultCount" name="adult_count" required value="1" min="1" onchange="calculateTotalPax()">
+                        </div>
+                        <div class="form-group">
+                            <label>Children</label>
+                            <input type="number" id="childrenCount" name="children_count" value="0" min="0" onchange="calculateTotalPax()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Pax</label>
+                            <input type="number" id="totalPax" name="total_pax" readonly value="1" class="readonly-input">
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label>Booking Source *</label>
                         <select id="bookingSource" name="booking_source" required>
-                            <option value="walk_in">🚶 Walk-in (0% fee)</option>
-                            <option value="phone">📞 Phone Booking (0% fee)</option>
-                            <option value="online">💻 Direct Online (0% fee)</option>
-                            <option value="agoda">🏨 Agoda (15% fee)</option>
-                            <option value="booking">📱 Booking.com (12% fee)</option>
-                            <option value="tiket">✈️ Tiket.com (10% fee)</option>
-                            <option value="airbnb">🏠 Airbnb (3% fee)</option>
-                            <option value="ota">🌐 OTA Lainnya (10% fee)</option>
+                            <option value="walk_in">Walk-in (0% fee)</option>
+                            <option value="phone">Phone Booking (0% fee)</option>
+                            <option value="online">Direct Online (0% fee)</option>
+                            <option value="agoda">Agoda (15% fee)</option>
+                            <option value="booking">Booking.com (12% fee)</option>
+                            <option value="tiket">Tiket.com (10% fee)</option>
+                            <option value="airbnb">Airbnb (3% fee)</option>
+                            <option value="ota">OTA Lainnya (10% fee)</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Price Calculation -->
                 <div class="form-section">
-                    <h3>💰 Price Details</h3>
+                    <h3>Price Details</h3>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Room Price/Night *</label>
@@ -2190,7 +2246,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <!-- Additional Info -->
                 <div class="form-section">
-                    <h3>📝 Additional Information</h3>
+                    <h3>Additional Information</h3>
                     <div class="form-group">
                         <label>Special Request</label>
                         <textarea id="specialRequest" name="special_request" rows="3" placeholder="Any special requests..."></textarea>
@@ -2212,7 +2268,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" onclick="closeReservationModal()">Cancel</button>
-                <button type="submit" class="btn-primary">💾 Save Reservation</button>
+                <button type="submit" class="btn-primary">Save Reservation</button>
             </div>
         </form>
     </div>

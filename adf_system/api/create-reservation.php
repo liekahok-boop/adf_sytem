@@ -44,6 +44,8 @@ try {
     $roomId = (int)$_POST['room_id'];
     $roomPrice = (float)$_POST['room_price'];
     $totalNights = (int)$_POST['total_nights'];
+    $adultCount = (int)($_POST['adult_count'] ?? 1);
+    $childrenCount = (int)($_POST['children_count'] ?? 0);
     $bookingSource = $_POST['booking_source'];
     $discount = (float)($_POST['discount'] ?? 0);
     $totalPrice = (float)$_POST['total_price'];
@@ -137,13 +139,15 @@ try {
         INSERT INTO bookings (
             booking_code, guest_id, room_id, 
             check_in_date, check_out_date, total_nights,
+            adults, children,
             room_price, total_price, discount, final_price,
             booking_source, status, payment_status, paid_amount,
             special_request, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, NOW())
     ", [
         $bookingCode, $guestId, $roomId,
         $checkInDate, $checkOutDate, $totalNights,
+        $adultCount, $childrenCount,
         $roomPrice, $totalPrice, $discount, $finalPrice,
         $bookingSource, $paymentStatus, $paidAmount,
         $specialRequest
