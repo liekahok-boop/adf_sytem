@@ -57,6 +57,8 @@ try {
             b.final_price,
             b.payment_status,
             b.status,
+            b.booking_source,
+            COALESCE(bp.total_paid, 0) as paid_amount,
             g.id as guest_id,
             g.guest_name,
             g.phone,
@@ -66,14 +68,20 @@ try {
             r.id as room_id,
             r.room_number,
             r.floor_number,
-            rt.type_name as room_type,
+            rt.type_name as type_name,
             rt.base_price,
+            DATEDIFF(b.check_out_date, b.check_in_date) as total_nights,
             DATEDIFF(b.check_out_date, CURDATE()) as nights_remaining,
             DATEDIFF(CURDATE(), b.check_in_date) as nights_stayed
         FROM bookings b
         INNER JOIN guests g ON b.guest_id = g.id
         INNER JOIN rooms r ON b.room_id = r.id
         LEFT JOIN room_types rt ON r.room_type_id = rt.id
+        LEFT JOIN (
+            SELECT booking_id, SUM(amount) as total_paid
+            FROM booking_payments
+            GROUP BY booking_id
+        ) bp ON b.id = bp.booking_id
         WHERE b.status = 'checked_in'
         ORDER BY r.room_number ASC
     ");
@@ -341,6 +349,10 @@ include '../../includes/header.php';
 
 .btn {
     flex: 1;
+}
+
+/* Quick View Style Buttons */
+.qv-btn {
     padding: 0.65rem 1rem;
     border-radius: 8px;
     border: none;
@@ -351,41 +363,57 @@ include '../../includes/header.php';
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
-}
-
-.btn-checkout {
-    background: linear-gradient(135deg, #ef4444, #f87171);
     color: white;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-checkout:hover {
+.qv-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.qv-btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.qv-btn:active {
+    transform: scale(0.95);
+}
+
+.qv-checkout-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+    flex: 1;
+}
+
+.qv-checkout-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
-.btn-breakfast {
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
-    color: white;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+.qv-breakfast-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.39);
+    flex: 1;
 }
 
-.btn-breakfast:hover {
+.qv-breakfast-btn:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
-}
-
-.btn-details {
-    background: var(--glass-bg);
-    color: var(--text-primary);
-    border: 1px solid var(--glass-border);
-}
-
-.btn-details:hover {
-    background: rgba(99, 102, 241, 0.1);
-    border-color: rgba(99, 102, 241, 0.3);
 }
 
 .status-badge {
@@ -482,53 +510,96 @@ include '../../includes/header.php';
     <!-- Guest Cards -->
     <?php if (count($inHouseGuests) > 0): ?>
     <div class="guests-grid">
-        <?php foreach ($inHouseGuests as $guest): ?>
+        <?php foreach ($inHouseGuests as $guest): 
+            $checkIn = date('d M Y', strtotime($guest['check_in_date']));
+            $checkOut = date('d M Y', strtotime($guest['check_out_date']));
+            $totalPrice = number_format($guest['final_price'], 0, ',', '.');
+            $paidRaw = $guest['paid_amount'] ?? 0;
+            $paidAmount = number_format($paidRaw, 0, ',', '.');
+            $remaining = number_format($guest['final_price'] - $paidRaw, 0, ',', '.');
+            
+            // Payment badge
+            if ($guest['payment_status'] === 'paid') {
+                $paymentBadge = '<span style="background: #10b981; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">LUNAS</span>';
+            } elseif ($guest['payment_status'] === 'partial') {
+                $paymentBadge = '<span style="background: #f59e0b; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">CICILAN</span>';
+            } else {
+                $paymentBadge = '<span style="background: #ef4444; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">BELUM BAYAR</span>';
+            }
+            
+            $bookingSource = $guest['booking_source'] ?? '';
+            $source = $bookingSource === 'walk_in' ? 'Walk-in' : ($bookingSource === 'phone' ? 'Phone' : ($bookingSource === 'online' ? 'Online' : 'OTA'));
+        ?>
         <div class="guest-card">
-            <div class="guest-header">
-                <div>
-                    <h3 class="guest-name"><?php echo htmlspecialchars($guest['guest_name']); ?></h3>
-                    <p class="booking-code">#<?php echo htmlspecialchars($guest['booking_code']); ?></p>
+            <div style="text-align: center; padding-bottom: 0.75rem; border-bottom: 2px solid rgba(99, 102, 241, 0.2);">
+                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem;">BOOKING CODE</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #6366f1; font-family: 'Courier New', monospace;"><?php echo htmlspecialchars($guest['booking_code']); ?></div>
+            </div>
+            
+            <div style="padding: 0.75rem 0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.25rem;">👤</span>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">Tamu</div>
+                        <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary);"><?php echo htmlspecialchars($guest['guest_name']); ?></div>
+                    </div>
                 </div>
-                <div class="room-badge">
-                    <span>🚪</span>
-                    <span>Room <?php echo htmlspecialchars($guest['room_number']); ?></span>
+                
+                <?php if ($guest['phone']): ?>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.25rem;">📞</span>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary);">Phone</div>
+                        <div style="font-size: 0.85rem; color: var(--text-primary);"><?php echo htmlspecialchars($guest['phone']); ?></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.25rem;">🏠</span>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary);">Room</div>
+                        <div style="font-size: 0.85rem; color: var(--text-primary); font-weight: 600;">Room <?php echo htmlspecialchars($guest['room_number']); ?> - <?php echo htmlspecialchars($guest['type_name']); ?></div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.25rem;">📅</span>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.65rem; color: var(--text-secondary);">Check-in / Check-out</div>
+                        <div style="font-size: 0.8rem; color: var(--text-primary);"><?php echo $checkIn; ?> → <?php echo $checkOut; ?></div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);"><?php echo $guest['total_nights']; ?> malam • <?php echo $source; ?></div>
+                    </div>
                 </div>
             </div>
-
-            <div class="guest-info">
-                <div class="info-row">
-                    <span class="info-icon">📱</span>
-                    <span class="info-label">Phone</span>
-                    <span class="info-value"><?php echo htmlspecialchars($guest['phone'] ?: '-'); ?></span>
+            
+            <div style="background: rgba(99, 102, 241, 0.05); border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600;">STATUS PEMBAYARAN</div>
+                    <?php echo $paymentBadge; ?>
                 </div>
-                <div class="info-row">
-                    <span class="info-icon">📅</span>
-                    <span class="info-label">Check-in</span>
-                    <span class="info-value"><?php echo date('d M', strtotime($guest['check_in_date'])); ?></span>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Total Harga:</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Rp <?php echo $totalPrice; ?></span>
                 </div>
-                <div class="info-row">
-                    <span class="info-icon">📤</span>
-                    <span class="info-label">Check-out</span>
-                    <span class="info-value"><?php echo date('d M', strtotime($guest['check_out_date'])); ?></span>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Sudah Bayar:</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: #10b981;">Rp <?php echo $paidAmount; ?></span>
                 </div>
-                <div class="info-row">
-                    <span class="info-icon">💳</span>
-                    <span class="info-label">Payment</span>
-                    <span class="status-badge status-<?php echo $guest['payment_status']; ?>">
-                        <?php echo strtoupper($guest['payment_status']); ?>
-                    </span>
+                
+                <?php if ($guest['payment_status'] !== 'paid'): ?>
+                <div style="display: flex; justify-content: space-between; padding-top: 0.35rem; border-top: 1px dashed rgba(99, 102, 241, 0.3);">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Sisa:</span>
+                    <span style="font-size: 0.9rem; font-weight: 800; color: #ef4444;">Rp <?php echo $remaining; ?></span>
                 </div>
+                <?php endif; ?>
             </div>
 
-            <div class="guest-footer">
-                <button class="btn btn-breakfast" onclick="selectBreakfast(<?php echo $guest['booking_id']; ?>, '<?php echo htmlspecialchars($guest['guest_name']); ?>')">
-                    <span>🍳</span>
-                    <span>Breakfast</span>
-                </button>
-                <button class="btn btn-checkout" onclick="doCheckOutGuest(<?php echo $guest['booking_id']; ?>, '<?php echo htmlspecialchars($guest['guest_name']); ?>', '<?php echo $guest['room_number']; ?>')">
-                    <span>🚪</span>
-                    <span>Check-out</span>
-                </button>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                <button class="qv-btn qv-breakfast-btn" onclick="selectBreakfast(<?php echo $guest['booking_id']; ?>, '<?php echo htmlspecialchars($guest['guest_name']); ?>')">Breakfast</button>
+                <button class="qv-btn qv-checkout-btn" onclick="doCheckOutGuest(<?php echo $guest['booking_id']; ?>, '<?php echo htmlspecialchars($guest['guest_name']); ?>', '<?php echo $guest['room_number']; ?>')">Check-out</button>
             </div>
         </div>
         <?php endforeach; ?>
@@ -577,7 +648,7 @@ function doCheckOutGuest(bookingId, guestName, roomNumber) {
     }
     
     // Show loading
-    const btn = event.target.closest('.btn-checkout');
+    const btn = event.target.closest('.qv-checkout-btn');
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<span>⏳</span><span>Processing...</span>';
     btn.disabled = true;

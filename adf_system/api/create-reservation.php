@@ -4,12 +4,21 @@
  * Handles reservation creation from calendar
  */
 
+// Suppress all output except JSON
+ob_start();
+error_reporting(0);
+ini_set('display_errors', 0);
+
 define('APP_ACCESS', true);
 require_once '../config/config.php';
 require_once '../config/database.php';
 require_once '../includes/auth.php';
 
-header('Content-Type: application/json');
+// Clear any buffered output
+ob_end_clean();
+
+// Set JSON header
+header('Content-Type: application/json; charset=utf-8');
 
 $auth = new Auth();
 if (!$auth->isLoggedIn()) {
@@ -41,19 +50,27 @@ try {
     
     $checkInDate = $_POST['check_in_date'];
     $checkOutDate = $_POST['check_out_date'];
-    $roomId = (int)$_POST['room_id'];
-    $roomPrice = (float)$_POST['room_price'];
-    $totalNights = (int)$_POST['total_nights'];
+    $roomId = (int)($_POST['room_id'] ?? 0);
+    $roomPrice = (float)($_POST['room_price'] ?? 0);
+    $totalNights = (int)($_POST['total_nights'] ?? 0);
     $adultCount = (int)($_POST['adult_count'] ?? 1);
     $childrenCount = (int)($_POST['children_count'] ?? 0);
     $bookingSource = $_POST['booking_source'];
     $discount = (float)($_POST['discount'] ?? 0);
-    $totalPrice = (float)$_POST['total_price'];
-    $finalPrice = (float)$_POST['final_price'];
+    $totalPrice = (float)($_POST['total_price'] ?? 0);
+    $finalPrice = (float)($_POST['final_price'] ?? 0);
     $specialRequest = trim($_POST['special_request'] ?? '');
     $paymentStatus = $_POST['payment_status'] ?? 'unpaid';
     $paidAmount = (float)($_POST['paid_amount'] ?? 0);
-    $paymentMethod = $_POST['payment_method'] ?? 'cash';
+    $paymentMethodRaw = $_POST['payment_method'] ?? 'cash';
+    $paymentMethod = strtolower(trim($paymentMethodRaw));
+    if ($paymentMethod === 'qr') {
+        $paymentMethod = 'qris';
+    }
+    $allowedMethods = ['cash', 'card', 'transfer', 'qris', 'ota', 'bank_transfer', 'other'];
+    if (!in_array($paymentMethod, $allowedMethods, true)) {
+        $paymentMethod = 'cash';
+    }
     
     // Map booking source to database enum values
     $sourceMap = [
@@ -99,32 +116,14 @@ try {
     
     $db->beginTransaction();
     
-    // Check if guest exists
-    $guest = null;
-    if (!empty($guestPhone)) {
-        $guest = $db->fetchOne("SELECT id FROM guests WHERE phone = ?", [$guestPhone]);
-    } elseif (!empty($guestEmail)) {
-        $guest = $db->fetchOne("SELECT id FROM guests WHERE email = ?", [$guestEmail]);
-    }
-    
-    // Create or update guest
-    if ($guest) {
-        $guestId = $guest['id'];
-        // Update guest info
-        $db->query("
-            UPDATE guests 
-            SET guest_name = ?, email = ?, id_card_number = ?, phone = ?
-            WHERE id = ?
-        ", [$guestName, $guestEmail, $guestIdNumber, $guestPhone, $guestId]);
-    } else {
-        // Create new guest - make sure id_card_number has value
-        $idCardNumber = !empty($guestIdNumber) ? $guestIdNumber : 'TEMP-' . date('YmdHis');
-        $db->query("
-            INSERT INTO guests (guest_name, phone, email, id_card_number, created_at)
-            VALUES (?, ?, ?, ?, NOW())
-        ", [$guestName, $guestPhone, $guestEmail, $idCardNumber]);
-        $guestId = $db->getConnection()->lastInsertId();
-    }
+    // ALWAYS CREATE NEW GUEST for each reservation
+    // This prevents name changes when same phone/email is used
+    $idCardNumber = !empty($guestIdNumber) ? $guestIdNumber : 'TEMP-' . date('YmdHis') . '-' . rand(1000, 9999);
+    $db->query("
+        INSERT INTO guests (guest_name, phone, email, id_card_number, created_at)
+        VALUES (?, ?, ?, ?, NOW())
+    ", [$guestName, $guestPhone, $guestEmail, $idCardNumber]);
+    $guestId = $db->getConnection()->lastInsertId();
     
     // Generate booking code
     $bookingCode = 'BK-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
@@ -145,7 +144,7 @@ try {
     }
 
     // Create booking (remove guest_name from INSERT as it doesn't exist in table)
-    $db->query("
+    $bookingStmt = $db->query("
         INSERT INTO bookings (
             booking_code, guest_id, room_id, 
             check_in_date, check_out_date, total_nights,
@@ -162,15 +161,33 @@ try {
         $bookingSource, $paymentStatus, $paidAmount,
         $specialRequest
     ]);
+
+    if (!$bookingStmt) {
+        throw new Exception('Failed to create booking');
+    }
     
     $bookingId = $db->getConnection()->lastInsertId();
     
     // Create initial payment record if paid amount exists
     if ($paidAmount > 0) {
-        $db->query("
-            INSERT INTO booking_payments (booking_id, amount, payment_method, paid_at, created_at)
-            VALUES (?, ?, ?, NOW(), NOW())
+        $columnInfo = $db->fetchOne("SHOW COLUMNS FROM booking_payments LIKE 'payment_method'");
+        if (!empty($columnInfo['Type']) && preg_match("/^enum\((.*)\)$/i", $columnInfo['Type'], $matches)) {
+            $enumValues = array_map(function ($value) {
+                return trim($value, "'\"");
+            }, explode(',', $matches[1]));
+            if (!in_array($paymentMethod, $enumValues, true)) {
+                $paymentMethod = $enumValues[0] ?? 'cash';
+            }
+        }
+
+        $paymentStmt = $db->query("
+            INSERT INTO booking_payments (booking_id, amount, payment_method)
+            VALUES (?, ?, ?)
         ", [$bookingId, $paidAmount, $paymentMethod]);
+
+        if (!$paymentStmt) {
+            throw new Exception('Failed to create payment record');
+        }
     }
 
     $db->commit();
@@ -187,8 +204,10 @@ try {
         $db->rollBack();
     }
     error_log("Create Reservation Error: " . $e->getMessage());
+    http_response_code(400);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
 }
+exit;

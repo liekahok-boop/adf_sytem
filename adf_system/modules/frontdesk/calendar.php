@@ -2197,6 +2197,11 @@ function showReservationForm() {
     
     const modal = document.getElementById('reservationModal');
     
+    // FIRST: Reset form completely to avoid stale data
+    document.getElementById('reservationForm').reset();
+    const guestName = document.getElementById('guestName');
+    if (guestName) guestName.value = '';
+    
     // Pre-fill form with SAVED data (not selectedDate which is now null)
     if (savedDate) {
         console.log('✅ Setting check-in date:', savedDate);
@@ -2249,7 +2254,66 @@ function closeReservationModal() {
     modal.style.alignItems = '';
     modal.style.justifyContent = '';
     
+    // Completely reset form
     document.getElementById('reservationForm').reset();
+    
+    // Explicitly clear guest information fields
+    const guestName = document.getElementById('guestName');
+    const guestPhone = document.getElementById('guestPhone');
+    const guestEmail = document.getElementById('guestEmail');
+    const guestId = document.getElementById('guestId');
+    if (guestName) guestName.value = '';
+    if (guestPhone) guestPhone.value = '';
+    if (guestEmail) guestEmail.value = '';
+    if (guestId) guestId.value = '';
+    
+    // Reset dates
+    const checkInDate = document.getElementById('checkInDate');
+    const checkOutDate = document.getElementById('checkOutDate');
+    if (checkInDate) checkInDate.value = '';
+    if (checkOutDate) checkOutDate.value = '';
+    
+    // Reset room and price
+    const roomSelect = document.getElementById('roomSelect');
+    const roomPrice = document.getElementById('roomPrice');
+    if (roomSelect) roomSelect.value = '';
+    if (roomPrice) roomPrice.value = '';
+    
+    // Reset discount
+    const discount = document.getElementById('discount');
+    if (discount) discount.value = '0';
+    
+    // Reset special request
+    const specialRequest = document.getElementById('specialRequest');
+    if (specialRequest) specialRequest.value = '';
+    
+    // Reset DP/Paid Amount
+    const paidAmount = document.getElementById('paidAmount');
+    if (paidAmount) {
+        paidAmount.value = '0';
+        delete paidAmount.dataset.dpPercent;
+    }
+    
+    // Reset payment method to Cash
+    const paymentMethod = document.getElementById('paymentMethod');
+    if (paymentMethod) paymentMethod.value = 'cash';
+    
+    // Reset payment status to unpaid
+    const paymentStatus = document.getElementById('paymentStatus');
+    if (paymentStatus) paymentStatus.value = 'unpaid';
+    
+    // Reset button states
+    const paymentButtons = document.querySelectorAll('#reservationModal .payment-method-btn');
+    paymentButtons.forEach((btn, idx) => {
+        if (idx === 1) {  // Cash is second button (index 1)
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    const dpButtons = document.querySelectorAll('.dp-percent-btn');
+    dpButtons.forEach(btn => btn.classList.remove('active'));
     
     // Reset Total Pax to default values
     const adultInput = document.getElementById('adultCount');
@@ -2257,6 +2321,11 @@ function closeReservationModal() {
     if (adultInput) adultInput.value = 1;
     if (childrenInput) childrenInput.value = 0;
     calculateTotalPax();
+    
+    // Reset price display
+    document.getElementById('totalPrice').textContent = 'Rp 0';
+    document.getElementById('discountAmount').textContent = '- Rp 0';
+    document.getElementById('finalPrice').textContent = 'Rp 0';
     
     selectedDate = null;
     selectedRoom = null;
@@ -2365,7 +2434,15 @@ function submitReservation(event) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            return response.text().then(text => {
+                throw new Error(text || 'Server returned non-JSON response');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             alert('Reservation created successfully!\nBooking Code: ' + data.booking_code);
@@ -2379,7 +2456,7 @@ function submitReservation(event) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Connection error. Please try again.');
+        alert('Error: ' + (error.message || 'Connection error. Please try again.'));
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     });

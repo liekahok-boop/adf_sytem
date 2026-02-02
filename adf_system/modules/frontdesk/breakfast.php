@@ -160,11 +160,9 @@ try {
         JOIN guests g ON b.guest_id = g.id
         JOIN rooms r ON b.room_id = r.id
         WHERE b.status = 'checked_in'
-        AND DATE(b.check_in_date) <= ?
-        AND DATE(b.check_out_date) > ?
         ORDER BY r.room_number ASC
     ");
-    $stmt->execute([$today, $today]);
+    $stmt->execute();
     $inHouseGuests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {}
 
