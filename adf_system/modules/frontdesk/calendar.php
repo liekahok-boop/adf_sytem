@@ -2063,7 +2063,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         console.log('⬆️ END moved:', moved, 'snap to column:', columnIndex, 'scroll:', targetScroll);
-        setTimeout(() => { moved = false; }, 150);
+        
+        // Reset moved flag after a longer delay to prevent accidental clicks
+        setTimeout(() => { 
+            moved = false; 
+            console.log('🔄 Reset moved flag');
+        }, 200);
     });
     
     wrapper.addEventListener('mouseleave', () => {
@@ -2072,8 +2077,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     wrapper.addEventListener('click', (e) => {
+        // If dragging was detected, block the click
         if (moved) {
-            console.log('🚫 BLOCKED - Drag detected');
+            console.log('🚫 BLOCKED - Drag detected, moved:', moved);
             e.preventDefault();
             e.stopPropagation();
             return;
@@ -2086,26 +2092,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const cell = e.target.closest('.grid-date-cell');
-        if (!cell) return;
+        if (!cell) {
+            console.log('❌ No cell found');
+            return;
+        }
         
         // Directly open reservation form with selected date and room
         const date = cell.dataset.date;
         const roomId = cell.dataset.roomId;
         const roomNumber = cell.dataset.roomNumber;
         
-        console.log('📅 Cell clicked - opening reservation form directly');
-        console.log('Date:', date, 'Room:', roomNumber, 'ID:', roomId);
+        console.log('✅ Cell clicked successfully!');
+        console.log('📅 Date:', date, 'Room:', roomNumber, 'ID:', roomId);
         
-        // Open reservation form
+        // Get modal element
         const modal = document.getElementById('reservationModal');
+        if (!modal) {
+            console.error('❌ Modal not found!');
+            return;
+        }
+        
+        console.log('✅ Modal found, preparing to open...');
         
         // Pre-fill form with selected date and room
         if (date) {
-            console.log('✅ Setting check-in date:', date);
+            console.log('📝 Setting check-in date:', date);
             
             // Set check-in date from selected date
             const checkInInput = document.getElementById('checkInDate');
-            checkInInput.value = date;
+            if (checkInInput) {
+                checkInInput.value = date;
+                console.log('✅ Check-in set:', checkInInput.value);
+            }
             
             // Set check-out date to next day
             const checkOut = new Date(date);
@@ -2113,32 +2131,45 @@ document.addEventListener('DOMContentLoaded', function() {
             const checkOutDate = checkOut.toISOString().split('T')[0];
             
             const checkOutInput = document.getElementById('checkOutDate');
-            checkOutInput.value = checkOutDate;
-            checkOutInput.min = checkOutDate;
+            if (checkOutInput) {
+                checkOutInput.value = checkOutDate;
+                checkOutInput.min = checkOutDate;
+                console.log('✅ Check-out set:', checkOutInput.value);
+            }
             
             // Calculate nights
             calculateNights();
             
-            console.log('Check-in:', checkInInput.value, 'Check-out:', checkOutInput.value);
+            console.log('✅ Nights calculated');
         }
         
         if (roomId) {
-            console.log('✅ Setting room:', roomId);
+            console.log('📝 Setting room:', roomId);
             const roomSelect = document.getElementById('roomSelect');
-            roomSelect.value = roomId;
-            
-            // Trigger change event to update price
-            const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-            if (selectedOption) {
-                const roomPrice = selectedOption.dataset.price;
-                if (roomPrice) {
-                    document.getElementById('roomPrice').value = roomPrice;
-                    calculatePrice();
+            if (roomSelect) {
+                roomSelect.value = roomId;
+                console.log('✅ Room selected:', roomSelect.value);
+                
+                // Trigger change event to update price
+                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+                if (selectedOption) {
+                    const roomPrice = selectedOption.dataset.price;
+                    if (roomPrice) {
+                        const priceInput = document.getElementById('roomPrice');
+                        if (priceInput) {
+                            priceInput.value = roomPrice;
+                            console.log('✅ Price set:', roomPrice);
+                            calculatePrice();
+                        }
+                    }
                 }
             }
         }
         
+        // Open modal
+        console.log('🚀 Opening modal...');
         modal.classList.add('active');
+        console.log('✅ Modal opened!');
     });
 });
 </script>
