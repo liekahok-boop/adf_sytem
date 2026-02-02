@@ -1238,6 +1238,39 @@ body[data-theme="light"] .form-group textarea {
     min-height: 70px;
 }
 
+.payment-method-group,
+.dp-percent-group {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.payment-method-btn,
+.dp-percent-btn {
+    border: 1px solid var(--border-color);
+    background: var(--sidebar-bg);
+    color: var(--text-primary);
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.payment-method-btn:hover,
+.dp-percent-btn:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+.payment-method-btn.active,
+.dp-percent-btn.active {
+    background: #6366f1;
+    color: white;
+    border-color: #6366f1;
+}
+
 .price-summary {
     background: var(--sidebar-bg);
     border: 1px solid var(--border-color);
@@ -1558,8 +1591,11 @@ function viewBooking(id, event) {
         });
 }
 
+let currentPaymentBooking = null;
+
 // Quick view popup - simple and elegant
 function showBookingQuickView(booking) {
+    currentPaymentBooking = booking;
     console.log('🎯 showBookingQuickView called with:', booking);
     
     const modal = document.getElementById('bookingQuickView');
@@ -1664,6 +1700,18 @@ function showBookingQuickView(booking) {
             </div>
             ` : ''}
         </div>
+        ${booking.payment_status !== 'paid' ? `
+        <div class="qv-actions">
+            <button type="button" class="qv-btn qv-checkin-btn" onclick="quickViewCheckIn()">Check-in</button>
+            <button type="button" class="qv-btn qv-move-btn" onclick="quickViewMoveRoom()">Move</button>
+            <button type="button" class="qv-btn qv-pay-btn" onclick="openBookingPaymentModal()">Pay</button>
+        </div>
+        ` : `
+        <div class="qv-actions">
+            <button type="button" class="qv-btn qv-checkin-btn" onclick="quickViewCheckIn()">Check-in</button>
+            <button type="button" class="qv-btn qv-move-btn" onclick="quickViewMoveRoom()">Move</button>
+        </div>
+        `}
     `;
     
     console.log('✅ Content populated');
@@ -1701,6 +1749,7 @@ function closeBookingQuickView() {
 
 function showBookingDetailsModal(booking) {
     const modal = document.getElementById('bookingDetailsModal');
+    currentPaymentBooking = booking;
     
     // Populate modal with booking data
     document.getElementById('detailGuestName').textContent = booking.guest_name;
@@ -1781,6 +1830,15 @@ function doCheckIn() {
     const bookingId = modal.dataset.bookingId;
     const guestName = document.getElementById('detailGuestName').textContent;
     const roomNumber = document.getElementById('detailRoomNumber').textContent;
+    const paymentStatus = modal.dataset.paymentStatus;
+
+    if (paymentStatus !== 'paid') {
+        const proceed = confirm('Pembayaran belum lunas. Lanjut check-in dan buat invoice sisa?');
+        if (!proceed) {
+            openBookingPaymentModal();
+            return;
+        }
+    }
     
     if (confirm(`Check-in ${guestName} ke Room ${roomNumber} sekarang?`)) {
         // Show loading state
@@ -1790,13 +1848,14 @@ function doCheckIn() {
         checkInBtn.disabled = true;
         
         // Call check-in API
+        const createInvoice = paymentStatus !== 'paid' ? 1 : 0;
         fetch('<?php echo BASE_URL; ?>/api/checkin-guest.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             credentials: 'include', // Important: Send session cookies
-            body: 'booking_id=' + bookingId
+            body: 'booking_id=' + bookingId + '&create_invoice=' + createInvoice
         })
         .then(response => {
             // Check if response is JSON
@@ -1811,7 +1870,11 @@ function doCheckIn() {
         })
         .then(data => {
             if (data.success) {
-                alert('✅ ' + data.message);
+                if (data.invoice_number) {
+                    alert('✅ ' + data.message + '\nInvoice: ' + data.invoice_number);
+                } else {
+                    alert('✅ ' + data.message);
+                }
                 // Reload page to reflect changes
                 window.location.reload();
             } else {
@@ -1891,11 +1954,167 @@ function doMoveRoom() {
 }
 
 function doPayment() {
-    const modal = document.getElementById('bookingDetailsModal');
-    const bookingId = modal.dataset.bookingId;
-    
-    // TODO: Implement payment modal
-    alert('Payment feature coming soon for booking #' + bookingId);
+    openBookingPaymentModal();
+}
+
+function quickViewCheckIn() {
+    if (!currentPaymentBooking) {
+        alert('Booking data not found');
+        return;
+    }
+
+    const booking = currentPaymentBooking;
+    const guestName = booking.guest_name;
+    const roomNumber = booking.room_number;
+    const paymentStatus = booking.payment_status;
+
+    if (paymentStatus !== 'paid') {
+        const proceed = confirm('Pembayaran belum lunas. Lanjut check-in dan buat invoice sisa?');
+        if (!proceed) {
+            openBookingPaymentModal();
+            return;
+        }
+    }
+
+    if (confirm(`Check-in ${guestName} ke Room ${roomNumber} sekarang?`)) {
+        const createInvoice = paymentStatus !== 'paid' ? 1 : 0;
+        const btnCheckIn = document.querySelector('.qv-checkin-btn');
+        const originalText = btnCheckIn.innerHTML;
+        btnCheckIn.innerHTML = 'Processing...';
+        btnCheckIn.disabled = true;
+
+        fetch('<?php echo BASE_URL; ?>/api/checkin-guest.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            credentials: 'include',
+            body: 'booking_id=' + booking.id + '&create_invoice=' + createInvoice
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.invoice_number) {
+                    alert('✅ ' + data.message + '\nInvoice: ' + data.invoice_number);
+                } else {
+                    alert('✅ ' + data.message);
+                }
+                closeBookingQuickView();
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.message);
+                btnCheckIn.innerHTML = originalText;
+                btnCheckIn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Terjadi kesalahan: ' + error.message);
+            btnCheckIn.innerHTML = originalText;
+            btnCheckIn.disabled = false;
+        });
+    }
+}
+
+function quickViewMoveRoom() {
+    if (!currentPaymentBooking) {
+        alert('Booking data not found');
+        return;
+    }
+
+    const booking = currentPaymentBooking;
+    alert('Move room feature untuk booking ' + booking.booking_code + ' segera hadir!');
+    // TODO: Implement move room modal
+}
+
+function openBookingPaymentModal() {
+    if (!currentPaymentBooking) {
+        alert('Booking data tidak ditemukan. Silakan buka detail booking lagi.');
+        return;
+    }
+
+    const total = parseFloat(currentPaymentBooking.final_price) || 0;
+    const paid = parseFloat(currentPaymentBooking.paid_amount) || 0;
+    const remaining = Math.max(0, total - paid);
+
+    document.getElementById('paymentTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+    document.getElementById('paymentPaid').textContent = 'Rp ' + paid.toLocaleString('id-ID');
+    document.getElementById('paymentRemaining').textContent = 'Rp ' + remaining.toLocaleString('id-ID');
+    document.getElementById('paymentAmount').value = remaining;
+    document.getElementById('paymentModalSubtitle').textContent = currentPaymentBooking.booking_code + ' • ' + (currentPaymentBooking.guest_name || '-');
+
+    const methodInput = document.getElementById('paymentMethodPay');
+    const methodButtons = document.querySelectorAll('#bookingPaymentModal .payment-method-btn');
+    methodButtons.forEach(btn => btn.classList.remove('active'));
+    const defaultBtn = document.querySelector('#bookingPaymentModal .payment-method-btn[data-value="cash"]');
+    if (defaultBtn) defaultBtn.classList.add('active');
+    if (methodInput) methodInput.value = 'cash';
+
+    const modal = document.getElementById('bookingPaymentModal');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+    modal.style.position = 'fixed';
+    modal.style.zIndex = '99999';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.right = '0';
+    modal.style.bottom = '0';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+}
+
+function closeBookingPaymentModal() {
+    const modal = document.getElementById('bookingPaymentModal');
+    modal.classList.remove('active');
+    modal.style.display = '';
+    modal.style.position = '';
+    modal.style.zIndex = '';
+}
+
+function submitBookingPayment() {
+    if (!currentPaymentBooking) return;
+
+    const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+    const method = document.getElementById('paymentMethodPay').value || 'cash';
+
+    if (amount <= 0) {
+        alert('Jumlah bayar harus lebih dari 0');
+        return;
+    }
+
+    fetch('<?php echo BASE_URL; ?>/api/add-booking-payment.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        credentials: 'include',
+        body: 'booking_id=' + encodeURIComponent(currentPaymentBooking.id) +
+              '&amount=' + encodeURIComponent(amount) +
+              '&payment_method=' + encodeURIComponent(method)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeBookingPaymentModal();
+            // Refresh booking details
+            return fetch('../../api/get-booking-details.php?id=' + currentPaymentBooking.id)
+                .then(res => res.json())
+                .then(updated => {
+                    if (updated.success) {
+                        showBookingQuickView(updated.booking);
+                        const detailsModal = document.getElementById('bookingDetailsModal');
+                        if (detailsModal && detailsModal.classList.contains('active')) {
+                            showBookingDetailsModal(updated.booking);
+                        }
+                    }
+                });
+        }
+        alert('Error: ' + data.message);
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Gagal menyimpan pembayaran');
+    });
 }
 
 function changeDate() {
@@ -2068,6 +2287,48 @@ function calculatePrice() {
     document.getElementById('totalPrice').textContent = 'Rp ' + total.toLocaleString('id-ID');
     document.getElementById('discountAmount').textContent = '- Rp ' + discount.toLocaleString('id-ID');
     document.getElementById('finalPrice').textContent = 'Rp ' + final.toLocaleString('id-ID');
+
+    // Recalculate DP amount if a percent is selected
+    const paidInput = document.getElementById('paidAmount');
+    if (paidInput && paidInput.dataset.dpPercent) {
+        applyDpPercent(parseFloat(paidInput.dataset.dpPercent));
+    }
+}
+
+function getFinalPriceNumber() {
+    const roomPrice = parseFloat(document.getElementById('roomPrice').value) || 0;
+    const nights = parseInt(document.getElementById('totalNights').value) || 0;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+    return (roomPrice * nights) - discount;
+}
+
+function applyDpPercent(percent) {
+    const paidInput = document.getElementById('paidAmount');
+    if (!paidInput) return;
+
+    const finalPrice = getFinalPriceNumber();
+    const amount = Math.round(finalPrice * (percent / 100));
+    paidInput.value = amount;
+    paidInput.dataset.dpPercent = percent;
+
+    updatePaymentStatusFromAmount();
+}
+
+function updatePaymentStatusFromAmount() {
+    const paidInput = document.getElementById('paidAmount');
+    const statusSelect = document.getElementById('paymentStatus');
+    if (!paidInput || !statusSelect) return;
+
+    const paid = parseFloat(paidInput.value) || 0;
+    const finalPrice = getFinalPriceNumber();
+
+    if (paid <= 0) {
+        statusSelect.value = 'unpaid';
+    } else if (paid >= finalPrice) {
+        statusSelect.value = 'paid';
+    } else {
+        statusSelect.value = 'partial';
+    }
 }
 
 // Calculate Total Pax (Adult + Children)
@@ -2151,6 +2412,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const discountInput = document.getElementById('discount');
     const adultInput = document.getElementById('adultCount');
     const childrenInput = document.getElementById('childrenCount');
+    const paidAmountInput = document.getElementById('paidAmount');
+    const paymentMethodInput = document.getElementById('paymentMethod');
     
     if (checkInDate) checkInDate.addEventListener('change', calculateNights);
     if (checkOutDate) checkOutDate.addEventListener('change', calculateNights);
@@ -2158,6 +2421,47 @@ document.addEventListener('DOMContentLoaded', function() {
     if (discountInput) discountInput.addEventListener('input', calculatePrice);
     if (adultInput) adultInput.addEventListener('change', calculateTotalPax);
     if (childrenInput) childrenInput.addEventListener('change', calculateTotalPax);
+    if (paidAmountInput) {
+        paidAmountInput.addEventListener('input', function() {
+            const dpButtons = document.querySelectorAll('.dp-percent-btn');
+            dpButtons.forEach(btn => btn.classList.remove('active'));
+            delete paidAmountInput.dataset.dpPercent;
+            updatePaymentStatusFromAmount();
+        });
+    }
+
+    const paymentButtons = document.querySelectorAll('#reservationModal .payment-method-btn');
+    paymentButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            paymentButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            if (paymentMethodInput) {
+                paymentMethodInput.value = this.dataset.value;
+            }
+        });
+    });
+
+    const payModalButtons = document.querySelectorAll('#bookingPaymentModal .payment-method-btn');
+    payModalButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            payModalButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const payMethodInput = document.getElementById('paymentMethodPay');
+            if (payMethodInput) {
+                payMethodInput.value = this.dataset.value;
+            }
+        });
+    });
+
+    const dpButtons = document.querySelectorAll('.dp-percent-btn');
+    dpButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            dpButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const percent = parseFloat(this.dataset.percent);
+            applyDpPercent(percent);
+        });
+    });
     
     if (roomSelect) {
         roomSelect.addEventListener('change', function() {
@@ -2548,6 +2852,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         <textarea id="specialRequest" name="special_request" rows="3" placeholder="Any special requests..."></textarea>
                     </div>
                     <div class="form-group">
+                        <label>Payment Method</label>
+                        <input type="hidden" id="paymentMethod" name="payment_method" value="cash">
+                        <div class="payment-method-group">
+                            <button type="button" class="payment-method-btn" data-value="ota">OTA</button>
+                            <button type="button" class="payment-method-btn active" data-value="cash">Cash</button>
+                            <button type="button" class="payment-method-btn" data-value="transfer">Transfer</button>
+                            <button type="button" class="payment-method-btn" data-value="qris">QR</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Payment Status</label>
                         <select id="paymentStatus" name="payment_status">
                             <option value="unpaid">Unpaid</option>
@@ -2556,7 +2870,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Paid Amount (Rp)</label>
+                        <label>DP / Paid Amount (Rp)</label>
+                        <div class="dp-percent-group">
+                            <button type="button" class="dp-percent-btn" data-percent="25">25%</button>
+                            <button type="button" class="dp-percent-btn" data-percent="50">50%</button>
+                            <button type="button" class="dp-percent-btn" data-percent="100">100%</button>
+                        </div>
                         <input type="number" id="paidAmount" name="paid_amount" value="0" min="0">
                     </div>
                 </div>
@@ -2570,110 +2889,9 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- Modal Popup - Booking Details -->
-<div id="bookingDetailsModal" class="modal-overlay">
-    <div class="modal-content modal-content-medium">
-        <button class="modal-close" onclick="closeBookingDetailsModal()">×</button>
-        
-        <div class="modal-header">
-            <h2>📋 Booking Details</h2>
-            <p id="detailBookingCode" style="font-weight: 700; color: #6366f1;"></p>
-        </div>
-        
-        <div class="booking-details-content">
-            <!-- Guest Information -->
-            <div class="detail-section">
-                <h3>👤 Guest Information</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Name:</span>
-                        <span class="detail-value" id="detailGuestName">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Phone:</span>
-                        <span class="detail-value" id="detailGuestPhone">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Email:</span>
-                        <span class="detail-value" id="detailGuestEmail">-</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Room Information -->
-            <div class="detail-section">
-                <h3>🏨 Room Information</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Room Number:</span>
-                        <span class="detail-value" id="detailRoomNumber">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Room Type:</span>
-                        <span class="detail-value" id="detailRoomType">-</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Booking Information -->
-            <div class="detail-section">
-                <h3>📅 Booking Information</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Check-in:</span>
-                        <span class="detail-value" id="detailCheckIn">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Check-out:</span>
-                        <span class="detail-value" id="detailCheckOut">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Total Nights:</span>
-                        <span class="detail-value" id="detailNights">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Booking Status:</span>
-                        <span class="detail-value" id="detailBookingStatus">-</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Payment Information -->
-            <div class="detail-section">
-                <h3>💰 Payment Information</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Payment Status:</span>
-                        <span class="detail-value" id="detailPaymentStatus">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Total Amount:</span>
-                        <span class="detail-value" id="detailTotalPrice" style="font-weight: 800; color: #10b981;">-</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="booking-actions">
-            <button id="btnCheckIn" class="btn-action btn-checkin" onclick="doCheckIn()">
-                <span>✓</span>
-                <span>Check In</span>
-            </button>
-            <button id="btnCheckOut" class="btn-action btn-checkout" onclick="doCheckOut()">
-                <span>→</span>
-                <span>Check Out</span>
-            </button>
-            <button id="btnPay" class="btn-action btn-pay" onclick="doPayment()">
-                <span>💳</span>
-                <span>Pay</span>
-            </button>
-            <button id="btnMove" class="btn-action btn-move" onclick="doMoveRoom()">
-                <span>↔</span>
-                <span>Move Room</span>
-            </button>
-        </div>
-    </div>
+<!-- Modal Popup - Booking Details [DEPRECATED - Use bookingQuickView instead] -->
+<div id="bookingDetailsModal" class="modal-overlay" style="display: none !important;">
+    <div class="modal-content modal-content-medium"></div>
 </div>
 
 <!-- Quick View Modal - Compact & Elegant -->
@@ -2682,6 +2900,42 @@ document.addEventListener('DOMContentLoaded', function() {
         <button class="quick-view-close" onclick="closeBookingQuickView()">×</button>
         <div id="qv-content">
             <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="bookingPaymentModal" class="modal-overlay">
+    <div class="payment-modal">
+        <button class="payment-modal-close" onclick="closeBookingPaymentModal()">×</button>
+        <div class="payment-modal-header">
+            <h3>Payment</h3>
+            <p id="paymentModalSubtitle">Pembayaran booking</p>
+        </div>
+        <div class="payment-modal-body">
+            <div class="payment-info">
+                <div><span>Total:</span> <strong id="paymentTotal">Rp 0</strong></div>
+                <div><span>Sudah Bayar:</span> <strong id="paymentPaid">Rp 0</strong></div>
+                <div><span>Sisa:</span> <strong id="paymentRemaining">Rp 0</strong></div>
+            </div>
+            <div class="form-group">
+                <label>Metode Pembayaran</label>
+                <input type="hidden" id="paymentMethodPay" value="cash">
+                <div class="payment-method-group">
+                    <button type="button" class="payment-method-btn" data-value="ota">OTA</button>
+                    <button type="button" class="payment-method-btn active" data-value="cash">Cash</button>
+                    <button type="button" class="payment-method-btn" data-value="transfer">Transfer</button>
+                    <button type="button" class="payment-method-btn" data-value="qris">QR</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Jumlah Bayar (Rp)</label>
+                <input type="number" id="paymentAmount" min="0" value="0">
+            </div>
+            <div class="payment-modal-actions">
+                <button type="button" class="btn-secondary" onclick="closeBookingPaymentModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="submitBookingPayment()">Pay</button>
+            </div>
         </div>
     </div>
 </div>
@@ -2736,6 +2990,131 @@ document.addEventListener('DOMContentLoaded', function() {
     background: #ef4444;
     color: white;
     transform: rotate(90deg);
+}
+
+.qv-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.qv-btn {
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.qv-btn:hover {
+    background: #f3f4f6;
+    border-color: #999;
+}
+
+.qv-pay-btn {
+    background: #10b981;
+    color: white;
+    border-color: #10b981;
+}
+
+.qv-pay-btn:hover {
+    background: #059669;
+    border-color: #059669;
+}
+
+.qv-checkin-btn {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.qv-checkin-btn:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+.qv-move-btn {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+}
+
+.qv-move-btn:hover {
+    background: #7c3aed;
+    border-color: #7c3aed;
+}
+
+.payment-modal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 420px;
+    padding: 1.25rem;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.payment-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+    font-weight: 300;
+}
+
+.payment-modal-header {
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.payment-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.payment-modal-header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.payment-info {
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.payment-info span {
+    color: var(--text-secondary);
+}
+
+.payment-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 /* Scrollbar styling for popup */

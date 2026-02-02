@@ -55,7 +55,7 @@ try {
             g.guest_name, g.phone, g.email,
             r.room_number,
             rt.type_name,
-            COALESCE(SUM(bp.amount), 0) as total_paid
+            COALESCE(SUM(bp.amount), b.paid_amount, 0) as total_paid
         FROM bookings b
         LEFT JOIN guests g ON b.guest_id = g.id
         LEFT JOIN rooms r ON b.room_id = r.id

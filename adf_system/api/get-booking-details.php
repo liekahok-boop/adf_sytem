@@ -47,12 +47,15 @@ try {
             COALESCE(g.id_card_number, '') as guest_id_number,
             r.room_number,
             rt.type_name as room_type,
-            rt.base_price
+            rt.base_price,
+            COALESCE(SUM(bp.amount), b.paid_amount, 0) as paid_amount
         FROM bookings b
         LEFT JOIN guests g ON b.guest_id = g.id
         LEFT JOIN rooms r ON b.room_id = r.id
         LEFT JOIN room_types rt ON r.room_type_id = rt.id
+        LEFT JOIN booking_payments bp ON b.id = bp.booking_id
         WHERE b.id = ?
+        GROUP BY b.id
     ";
     
     $stmt = $conn->prepare($query);
@@ -63,13 +66,6 @@ try {
         echo json_encode(['success' => false, 'message' => 'Booking not found with ID: ' . $bookingId]);
         exit;
     }
-    
-    // Calculate total paid from booking_payments
-    $paymentQuery = "SELECT COALESCE(SUM(amount), 0) as paid_amount FROM booking_payments WHERE booking_id = ?";
-    $paymentStmt = $conn->prepare($paymentQuery);
-    $paymentStmt->execute([$bookingId]);
-    $paymentResult = $paymentStmt->fetch(PDO::FETCH_ASSOC);
-    $booking['paid_amount'] = $paymentResult['paid_amount'];
     
     // Ensure all fields have values
     $booking['guest_phone'] = $booking['guest_phone'] ?? '-';

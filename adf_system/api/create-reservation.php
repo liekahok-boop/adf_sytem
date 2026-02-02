@@ -53,6 +53,7 @@ try {
     $specialRequest = trim($_POST['special_request'] ?? '');
     $paymentStatus = $_POST['payment_status'] ?? 'unpaid';
     $paidAmount = (float)($_POST['paid_amount'] ?? 0);
+    $paymentMethod = $_POST['payment_method'] ?? 'cash';
     
     // Map booking source to database enum values
     $sourceMap = [
@@ -134,6 +135,15 @@ try {
         $bookingCode = 'BK-' . date('YmdHis') . '-' . rand(100, 999);
     }
     
+    // Ensure payment status matches paid amount
+    if ($paidAmount <= 0) {
+        $paymentStatus = 'unpaid';
+    } elseif ($paidAmount >= $finalPrice) {
+        $paymentStatus = 'paid';
+    } else {
+        $paymentStatus = 'partial';
+    }
+
     // Create booking (remove guest_name from INSERT as it doesn't exist in table)
     $db->query("
         INSERT INTO bookings (
@@ -155,6 +165,14 @@ try {
     
     $bookingId = $db->getConnection()->lastInsertId();
     
+    // Create initial payment record if paid amount exists
+    if ($paidAmount > 0) {
+        $db->query("
+            INSERT INTO booking_payments (booking_id, amount, payment_method, paid_at, created_at)
+            VALUES (?, ?, ?, NOW(), NOW())
+        ", [$bookingId, $paidAmount, $paymentMethod]);
+    }
+
     $db->commit();
     
     echo json_encode([
