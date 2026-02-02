@@ -2079,7 +2079,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Check if clicked on booking bar - don't open Actions modal
+        // Check if clicked on booking bar - don't open reservation form
         if (e.target.closest('.booking-bar')) {
             console.log('📋 Booking bar clicked - ignoring cell click');
             return;
@@ -2088,8 +2088,57 @@ document.addEventListener('DOMContentLoaded', function() {
         const cell = e.target.closest('.grid-date-cell');
         if (!cell) return;
         
-        console.log('📅 Cell clicked - opening Actions modal');
-        openColumnModal(cell.dataset.date, cell.dataset.roomNumber, cell.dataset.roomId);
+        // Directly open reservation form with selected date and room
+        const date = cell.dataset.date;
+        const roomId = cell.dataset.roomId;
+        const roomNumber = cell.dataset.roomNumber;
+        
+        console.log('📅 Cell clicked - opening reservation form directly');
+        console.log('Date:', date, 'Room:', roomNumber, 'ID:', roomId);
+        
+        // Open reservation form
+        const modal = document.getElementById('reservationModal');
+        
+        // Pre-fill form with selected date and room
+        if (date) {
+            console.log('✅ Setting check-in date:', date);
+            
+            // Set check-in date from selected date
+            const checkInInput = document.getElementById('checkInDate');
+            checkInInput.value = date;
+            
+            // Set check-out date to next day
+            const checkOut = new Date(date);
+            checkOut.setDate(checkOut.getDate() + 1);
+            const checkOutDate = checkOut.toISOString().split('T')[0];
+            
+            const checkOutInput = document.getElementById('checkOutDate');
+            checkOutInput.value = checkOutDate;
+            checkOutInput.min = checkOutDate;
+            
+            // Calculate nights
+            calculateNights();
+            
+            console.log('Check-in:', checkInInput.value, 'Check-out:', checkOutInput.value);
+        }
+        
+        if (roomId) {
+            console.log('✅ Setting room:', roomId);
+            const roomSelect = document.getElementById('roomSelect');
+            roomSelect.value = roomId;
+            
+            // Trigger change event to update price
+            const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+            if (selectedOption) {
+                const roomPrice = selectedOption.dataset.price;
+                if (roomPrice) {
+                    document.getElementById('roomPrice').value = roomPrice;
+                    calculatePrice();
+                }
+            }
+        }
+        
+        modal.classList.add('active');
     });
 });
 </script>
