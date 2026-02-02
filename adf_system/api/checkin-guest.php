@@ -83,7 +83,10 @@ try {
     // Create invoice for remaining balance if required
     $invoiceNumber = null;
     if ($remaining > 0 && $createInvoice) {
-        $division = $db->fetchOne("SELECT id FROM divisions WHERE is_active = 1 AND (division_name LIKE '%Room Sell%' OR division_name LIKE '%Room%' OR division_name LIKE '%Front Desk%' OR division_name LIKE '%Frontdesk%' OR division_code LIKE '%-FD') ORDER BY id ASC LIMIT 1");
+        $division = $db->fetchOne("SELECT id FROM divisions WHERE is_active = 1 AND division_name = 'Room Sell' LIMIT 1");
+        if (!$division) {
+            $division = $db->fetchOne("SELECT id FROM divisions WHERE is_active = 1 AND (division_name LIKE '%Front Desk%' OR division_name LIKE '%Frontdesk%' OR division_code LIKE '%-FD') ORDER BY id ASC LIMIT 1");
+        }
         if (!$division) {
             $division = $db->fetchOne("SELECT id FROM divisions WHERE is_active = 1 ORDER BY id ASC LIMIT 1");
         }
