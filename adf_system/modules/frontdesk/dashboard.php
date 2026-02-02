@@ -75,10 +75,11 @@ try {
     $totalRoomsResult = $db->fetchOne("SELECT COUNT(*) as count FROM rooms");
     $stats['total_rooms'] = $totalRoomsResult['count'] ?? 1;
 
+    // Count occupied rooms - include both checked_in AND confirmed bookings for today
     $occupiedRoomsResult = $db->fetchOne("
         SELECT COUNT(DISTINCT b.room_id) as count 
         FROM bookings b
-        WHERE b.status = 'checked_in'
+        WHERE b.status IN ('checked_in', 'confirmed')
         AND DATE(b.check_in_date) <= ?
         AND DATE(b.check_out_date) > ?
     ", [$today, $today]);
