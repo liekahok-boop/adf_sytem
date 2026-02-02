@@ -197,5 +197,3 @@ class Database {
         return $this->connection->rollBack();
     }
 }
-
-?>

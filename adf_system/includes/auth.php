@@ -193,5 +193,3 @@ class Auth {
         return in_array($module, $permissions);
     }
 }
-
-?>

@@ -4,21 +4,31 @@
  * Handles reservation creation from calendar
  */
 
-// Suppress all output except JSON
+// Start output buffering FIRST before any includes
 ob_start();
+
+// Suppress all errors/warnings
 error_reporting(0);
-ini_set('display_errors', 0);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
 
 define('APP_ACCESS', true);
+
+// Capture output from includes
+ob_start();
 require_once '../config/config.php';
 require_once '../config/database.php';
 require_once '../includes/auth.php';
-
-// Clear any buffered output
 ob_end_clean();
 
-// Set JSON header
+// Clear ALL buffered output before sending JSON
+while (ob_get_level()) {
+    ob_end_clean();
+}
+
+// Set JSON header AFTER clearing buffers
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, must-revalidate');
 
 $auth = new Auth();
 if (!$auth->isLoggedIn()) {

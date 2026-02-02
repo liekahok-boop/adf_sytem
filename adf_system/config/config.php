@@ -94,5 +94,3 @@ define('BUSINESS_COLOR', $BUSINESS_CONFIG['theme']['color_primary']);
 // ============================================
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/../includes/language.php';
-
-?>
