@@ -1862,6 +1862,19 @@ function showReservationForm() {
 function closeReservationModal() {
     const modal = document.getElementById('reservationModal');
     modal.classList.remove('active');
+    
+    // Remove inline styles to allow CSS to take over
+    modal.style.display = '';
+    modal.style.position = '';
+    modal.style.top = '';
+    modal.style.left = '';
+    modal.style.right = '';
+    modal.style.bottom = '';
+    modal.style.zIndex = '';
+    modal.style.backgroundColor = '';
+    modal.style.alignItems = '';
+    modal.style.justifyContent = '';
+    
     document.getElementById('reservationForm').reset();
     
     // Reset Total Pax to default values
