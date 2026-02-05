@@ -2138,62 +2138,18 @@ function nextMonth() {
     changeDate();
 }
 
-// Modal Functions for Calendar Column Click
-let selectedDate = null;
-let selectedRoom = null;
-
-function openColumnModal(date, roomNumber, roomId) {
-    selectedDate = date;
-    selectedRoom = { number: roomNumber, id: roomId };
-    
-    console.log('📅 Cell clicked - Date:', date, 'Room:', roomNumber, 'ID:', roomId);
-    
-    const modal = document.getElementById('columnModal');
-    const dateInfo = document.getElementById('modalDateInfo');
-    
-    // Format date nicely
-    const dateObj = new Date(date);
-    const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    });
-    
-    dateInfo.innerHTML = `
-        <span>Room ${roomNumber}</span><br>
-        <strong>${formattedDate}</strong>
-    `;
-    
-    modal.classList.add('active');
-}
-
-function closeColumnModal() {
-    const modal = document.getElementById('columnModal');
-    modal.classList.remove('active');
-    selectedDate = null;
-    selectedRoom = null;
-}
-
-function createNewReservation() {
-    if (!selectedDate || !selectedRoom) {
-        alert('Error: Date or Room not selected');
-        return;
-    }
-    
-    // Open reservasi page with pre-filled data
-    const url = '<?php echo BASE_URL; ?>/modules/frontdesk/reservasi.php?date=' + selectedDate + '&room=' + selectedRoom.id;
-    window.location.href = url;
-}
+// Store form pre-fill data
+let formPreFillData = {
+    date: null,
+    roomId: null
+};
 
 function showReservationForm() {
-    // IMPORTANT: Save date and room BEFORE closing modal (which resets them)
-    const savedDate = selectedDate;
-    const savedRoom = selectedRoom;
+    // Use pre-fill data if available
+    const savedDate = formPreFillData.date;
+    const savedRoomId = formPreFillData.roomId;
     
-    console.log('📅 Opening reservation form with date:', savedDate, 'room:', savedRoom);
-    
-    closeColumnModal();
+    console.log('📅 Opening reservation form with date:', savedDate, 'room:', savedRoomId);
     
     const modal = document.getElementById('reservationModal');
     
@@ -2224,9 +2180,9 @@ function showReservationForm() {
         console.error('❌ No savedDate available!');
     }
     
-    if (savedRoom && savedRoom.id) {
-        console.log('✅ Setting room:', savedRoom.id);
-        document.getElementById('roomSelect').value = savedRoom.id;
+    if (savedRoomId) {
+        console.log('✅ Setting room:', savedRoomId);
+        document.getElementById('roomSelect').value = savedRoomId;
         // Trigger change to update price
         document.getElementById('roomSelect').dispatchEvent(new Event('change'));
     }
@@ -2463,21 +2419,6 @@ function submitReservation(event) {
 }
 
 
-function blockRoom() {
-    if (!selectedDate || !selectedRoom) {
-        alert('Error: Date or Room not selected');
-        return;
-    }
-    
-    const reason = prompt('Alasan block room:', 'Maintenance');
-    if (reason === null) return;
-    
-    // Here you would implement the actual block room functionality
-    // For now, show a message
-    alert('Room ' + selectedRoom.number + ' blocked for ' + selectedDate + '\nReason: ' + reason);
-    closeColumnModal();
-}
-
 // Setup form event listeners (removed click-outside-to-close functionality)
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -2658,7 +2599,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Directly open reservation form with selected date and room
+        // Store selected date and room for form pre-fill
         const date = cell.dataset.date;
         const roomId = cell.dataset.roomId;
         const roomNumber = cell.dataset.roomNumber;
@@ -2666,107 +2607,13 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Cell clicked successfully!');
         console.log('📅 Date:', date, 'Room:', roomNumber, 'ID:', roomId);
         
-        // Get modal element
-        const modal = document.getElementById('reservationModal');
-        if (!modal) {
-            console.error('❌ Modal not found!');
-            return;
-        }
+        // Save to pre-fill data
+        formPreFillData.date = date;
+        formPreFillData.roomId = roomId;
         
-        console.log('✅ Modal found, preparing to open...');
-        
-        // Pre-fill form with selected date and room
-        if (date) {
-            console.log('📝 Setting check-in date:', date);
-            
-            // Set check-in date from selected date
-            const checkInInput = document.getElementById('checkInDate');
-            if (checkInInput) {
-                checkInInput.value = date;
-                console.log('✅ Check-in set:', checkInInput.value);
-            }
-            
-            // Set check-out date to next day
-            const checkOut = new Date(date);
-            checkOut.setDate(checkOut.getDate() + 1);
-            const checkOutDate = checkOut.toISOString().split('T')[0];
-            
-            const checkOutInput = document.getElementById('checkOutDate');
-            if (checkOutInput) {
-                checkOutInput.value = checkOutDate;
-                checkOutInput.min = checkOutDate;
-                console.log('✅ Check-out set:', checkOutInput.value);
-            }
-            
-            // Calculate nights
-            calculateNights();
-            
-            console.log('✅ Nights calculated');
-        }
-        
-        if (roomId) {
-            console.log('📝 Setting room:', roomId);
-            const roomSelect = document.getElementById('roomSelect');
-            if (roomSelect) {
-                roomSelect.value = roomId;
-                console.log('✅ Room selected:', roomSelect.value);
-                
-                // Trigger change event to update price
-                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-                if (selectedOption) {
-                    const roomPrice = selectedOption.dataset.price;
-                    if (roomPrice) {
-                        const priceInput = document.getElementById('roomPrice');
-                        if (priceInput) {
-                            priceInput.value = roomPrice;
-                            console.log('✅ Price set:', roomPrice);
-                            calculatePrice();
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Open modal with small delay to ensure DOM is ready
-        console.log('🚀 Opening modal...');
-        
-        // Force modal to be visible with inline styles
-        modal.style.display = 'flex';
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.right = '0';
-        modal.style.bottom = '0';
-        modal.style.zIndex = '99999';
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
-        
-        // Add active class
-        modal.classList.add('active');
-        
-        console.log('✅ Modal forced to display');
-        
-        // Force visibility check
-        setTimeout(() => {
-            const isVisible = modal.classList.contains('active');
-            const displayStyle = window.getComputedStyle(modal).display;
-            const zIndex = window.getComputedStyle(modal).zIndex;
-            console.log('✅ Modal state - Active:', isVisible, 'Display:', displayStyle, 'Z-index:', zIndex);
-        }, 100);
-        
-        // Initialize Total Pax with default values
-        const adultInput = document.getElementById('adultCount');
-        const childrenInput = document.getElementById('childrenCount');
-        if (adultInput && !adultInput.value) {
-            adultInput.value = 1;
-        }
-        if (childrenInput && !childrenInput.value) {
-            childrenInput.value = 0;
-        }
-        calculateTotalPax();
-        
-        console.log('✅ Modal opened!');
+        // Open reservation form
+        showReservationForm();
+    });
 });
 </script>
 
