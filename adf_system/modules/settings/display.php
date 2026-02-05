@@ -47,10 +47,10 @@ try {
     }
 }
 
-// Get current user preferences (theme & language) for current business
+// Get current user preferences (theme & language)
 $preferences = $db->fetchOne(
-    "SELECT * FROM user_preferences WHERE user_id = ? AND branch_id = ?",
-    [$currentUser['id'], ACTIVE_BUSINESS_ID]
+    "SELECT * FROM user_preferences WHERE user_id = ?",
+    [$currentUser['id']]
 );
 $currentTheme = $preferences['theme'] ?? 'dark';
 $currentLanguage = $preferences['language'] ?? 'id';
@@ -76,69 +76,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
         
-        // Update user preferences (theme & language) for current business
+        // Update user preferences (theme & language)
         $theme = $_POST['theme'] ?? 'dark';
         $language = $_POST['language'] ?? 'id';
         
         // Debug log
-        error_log("Saving theme: $theme for user {$currentUser['id']} in business " . ACTIVE_BUSINESS_ID);
+        error_log("Saving theme: $theme for user {$currentUser['id']}");
         
         try {
-            // First, check if table has branch_id column
-            $columns = $db->getConnection()->query("SHOW COLUMNS FROM user_preferences")->fetchAll(PDO::FETCH_COLUMN);
-            $hasBranchId = in_array('branch_id', $columns);
+            // Check if user has existing preferences
+            $existing = $db->fetchOne(
+                "SELECT id FROM user_preferences WHERE user_id = ?",
+                [$currentUser['id']]
+            );
             
-            if ($hasBranchId) {
-                // New system: per business
-                $existing = $db->fetchOne(
-                    "SELECT id FROM user_preferences WHERE user_id = ? AND branch_id = ?",
-                    [$currentUser['id'], ACTIVE_BUSINESS_ID]
-                );
-                
-                if ($existing) {
-                    $result = $db->update('user_preferences', [
-                        'theme' => $theme,
-                        'language' => $language,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ], 'user_id = :user_id AND branch_id = :branch_id', [
-                        'user_id' => $currentUser['id'],
-                        'branch_id' => ACTIVE_BUSINESS_ID
-                    ]);
-                    error_log("Updated existing preference, result: " . ($result ? 'success' : 'failed'));
-                } else {
-                    $result = $db->insert('user_preferences', [
-                        'user_id' => $currentUser['id'],
-                        'branch_id' => ACTIVE_BUSINESS_ID,
-                        'theme' => $theme,
-                        'language' => $language
-                    ]);
-                    error_log("Inserted new preference, ID: $result");
-                }
+            if ($existing) {
+                // Update existing
+                $db->update('user_preferences', [
+                    'theme' => $theme,
+                    'language' => $language,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ], 'user_id = :user_id', ['user_id' => $currentUser['id']]);
+                error_log("Updated theme preference for user {$currentUser['id']} to $theme");
             } else {
-                // Old system: global per user
-                $existing = $db->fetchOne(
-                    "SELECT id FROM user_preferences WHERE user_id = ?",
-                    [$currentUser['id']]
-                );
-                
-                if ($existing) {
-                    $db->update('user_preferences', [
-                        'theme' => $theme,
-                        'language' => $language,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ], 'user_id = :user_id', ['user_id' => $currentUser['id']]);
-                } else {
-                    $db->insert('user_preferences', [
-                        'user_id' => $currentUser['id'],
-                        'theme' => $theme,
-                        'language' => $language
-                    ]);
-                }
+                // Insert new
+                $db->insert('user_preferences', [
+                    'user_id' => $currentUser['id'],
+                    'theme' => $theme,
+                    'language' => $language
+                ]);
+                error_log("Inserted new theme preference for user {$currentUser['id']} as $theme");
             }
         } catch (Exception $prefError) {
-            // If user_preferences update fails, log error
             error_log('Failed to update user_preferences: ' . $prefError->getMessage());
-            throw $prefError; // Re-throw to trigger rollback
+            throw $prefError;
         }
         
         // Don't update global session for theme (it's now per-business)
