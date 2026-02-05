@@ -280,8 +280,8 @@ const initCharts = () => {
     console.log('Charts initialized');
 };
 
-// Initialize on DOM Load
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize function
+const initializeSystem = () => {
     console.log('🚀 Narayana Hotel Management System Initialized');
     
     // Initialize components
@@ -289,6 +289,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCalculations();
     setupSearch();
     setupDropdownToggles(); // Add dropdown toggle handler
+};
+
+// Initialize on DOM Load - with fallback for already-loaded DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSystem);
+} else {
+    // DOM already loaded, run immediately
+    setTimeout(initializeSystem, 100);
+}
+
+// Also setup on regular DOMContentLoaded for safety
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded event fired');
+    
     
     // Add smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
