@@ -4,6 +4,10 @@
  * Configuration File
  */
 
+if (!ob_get_level()) {
+    ob_start();
+}
+
 // Prevent direct access
 defined('APP_ACCESS') or define('APP_ACCESS', true);
 
