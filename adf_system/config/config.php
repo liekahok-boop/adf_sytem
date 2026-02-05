@@ -23,10 +23,23 @@ define('DEVELOPER_LOGO', 'assets/img/developer-logo.png');
 // ============================================
 // DATABASE CONFIGURATION
 // ============================================
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'adf_narayana_hotel');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// Local config (override for production in separate file if needed)
+$isProduction = (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false && 
+                strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false);
+
+if ($isProduction) {
+    // Production (Hosting)
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'adfb2574_narayana_db');
+    define('DB_USER', 'adfb2574_adfsystem');
+    define('DB_PASS', '@Nnoc2025');
+} else {
+    // Local development
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'adf_narayana_hotel');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+}
 define('DB_CHARSET', 'utf8mb4');
 
 // ============================================
