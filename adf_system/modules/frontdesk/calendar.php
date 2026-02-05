@@ -2767,36 +2767,10 @@ document.addEventListener('DOMContentLoaded', function() {
         calculateTotalPax();
         
         console.log('✅ Modal opened!');
-    });
 });
 </script>
 
-<!-- Modal Popup - Actions -->
-<div id="columnModal" class="modal-overlay">
-    <div class="modal-content">
-        <button class="modal-close" onclick="closeColumnModal()">×</button>
-        
-        <div class="modal-header">
-            <h2>📅 Actions</h2>
-            <p>Select an action for this date</p>
-        </div>
-        
-        <div class="modal-date-info" id="modalDateInfo">
-            <!-- Will be filled by JavaScript -->
-        </div>
-        
-        <div class="modal-actions">
-            <button class="modal-btn modal-btn-primary" onclick="showReservationForm()">
-                <span>➕</span>
-                <span>New Reservation</span>
-            </button>
-            <button class="modal-btn modal-btn-secondary" onclick="blockRoom()">
-                <span>🚫</span>
-                <span>Block Room</span>
-            </button>
-        </div>
-    </div>
-</div>
+<!-- MODALS SECTION -->
 
 <!-- Modal Popup - Reservation Form -->
 <div id="reservationModal" class="modal-overlay">
