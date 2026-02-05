@@ -35,8 +35,8 @@ $filterDivision = getGet('division', 'all');
 $filterPayment = getGet('payment', 'all');
 
 // Build query with filters
-$whereClauses = ["cb.branch_id = :branch_id"];
-$params = ['branch_id' => ACTIVE_BUSINESS_ID];
+$whereClauses = [];
+$params = [];
 
 // If date is specified and not 'all', filter by specific date
 if ($filterDate !== 'all' && !empty($filterDate)) {
@@ -64,7 +64,7 @@ if ($filterPayment !== 'all') {
     $params['payment'] = $filterPayment;
 }
 
-$whereSQL = implode(' AND ', $whereClauses);
+$whereSQL = count($whereClauses) > 0 ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
 
 // Get transactions - Use LEFT JOIN to handle missing references
 $transactions = $db->fetchAll(
@@ -75,16 +75,16 @@ $transactions = $db->fetchAll(
         c.category_name,
         u.full_name as created_by_name
     FROM cash_book cb
-    LEFT JOIN divisions d ON cb.division_id = d.id AND d.branch_id = cb.branch_id
-    LEFT JOIN categories c ON cb.category_id = c.id AND c.branch_id = cb.branch_id
+    LEFT JOIN divisions d ON cb.division_id = d.id
+    LEFT JOIN categories c ON cb.category_id = c.id
     LEFT JOIN users u ON cb.created_by = u.id
-    WHERE {$whereSQL}
+    {$whereSQL}
     ORDER BY cb.transaction_date DESC, cb.transaction_time DESC",
     $params
 );
 
 // Get divisions for filter
-$divisions = $db->fetchAll("SELECT * FROM divisions WHERE is_active = 1 AND branch_id = :branch_id ORDER BY division_name", ['branch_id' => ACTIVE_BUSINESS_ID]);
+$divisions = $db->fetchAll("SELECT * FROM divisions WHERE is_active = 1 ORDER BY division_name");
 
 // Calculate totals
 $totalIncome = 0;
