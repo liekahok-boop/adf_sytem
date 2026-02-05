@@ -39,6 +39,13 @@ class Database {
 
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
+            // If business database fails, fallback to default database
+            if ($dbName !== DB_NAME) {
+                error_log("Failed to connect to business database '{$dbName}', falling back to default database.");
+                // Retry with default database
+                $this->__construct(DB_NAME);
+                return;
+            }
             die("Database Connection Error to '{$dbName}': " . $e->getMessage());
         }
     }
