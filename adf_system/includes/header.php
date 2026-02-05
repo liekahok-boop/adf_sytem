@@ -22,6 +22,9 @@ require_once __DIR__ . '/functions.php';
     <!-- Icons (Feather Icons) -->
     <script src="https://unpkg.com/feather-icons"></script>
     
+    <!-- Main JavaScript -->
+    <script src="<?php echo BASE_URL; ?>/assets/js/main.js?v=<?php echo time(); ?>"></script>
+    
     <!-- Additional CSS -->
     <?php if (isset($additionalCSS)): ?>
         <?php foreach ($additionalCSS as $css): ?>
@@ -488,3 +491,6 @@ function switchBusiness(businessId) {
     }
 }
 </script>
+
+<!-- Main JavaScript - CRITICAL for dropdown functionality -->
+<script src="<?php echo BASE_URL; ?>/assets/js/main.js?v=<?php echo time(); ?>"></script>
