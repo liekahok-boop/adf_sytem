@@ -18,12 +18,20 @@ class Database {
         try {
             // Get database name from business config if not provided
             if ($dbName === null) {
-                if (defined('ACTIVE_BUSINESS_ID')) {
+                // On hosting, always use default database for compatibility
+                $isProduction = (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false && 
+                                strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false);
+                
+                if ($isProduction) {
+                    // Production: always use default database
+                    $dbName = DB_NAME;
+                } elseif (defined('ACTIVE_BUSINESS_ID')) {
+                    // Local: use business-specific database
                     require_once __DIR__ . '/../includes/business_helper.php';
                     $businessConfig = getActiveBusinessConfig();
                     $dbName = $businessConfig['database'];
                 } else {
-                    $dbName = DB_NAME; // Fallback to default
+                    $dbName = DB_NAME;
                 }
             }
 
@@ -39,13 +47,6 @@ class Database {
 
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            // If business database fails, fallback to default database
-            if ($dbName !== DB_NAME) {
-                error_log("Failed to connect to business database '{$dbName}', falling back to default database.");
-                // Retry with default database
-                $this->__construct(DB_NAME);
-                return;
-            }
             die("Database Connection Error to '{$dbName}': " . $e->getMessage());
         }
     }
