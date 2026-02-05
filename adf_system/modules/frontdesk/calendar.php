@@ -837,7 +837,7 @@ body[data-theme="light"] .grid-date-cell {
    MODAL POPUP STYLES
    ============================================ */
 .modal-overlay {
-    display: none;
+    display: none !important;
     position: fixed;
     top: 0;
     left: 0;
@@ -2197,6 +2197,10 @@ function showReservationForm() {
 function closeReservationModal() {
     const modal = document.getElementById('reservationModal');
     modal.classList.remove('active');
+    
+    // Clear pre-fill data
+    formPreFillData.date = null;
+    formPreFillData.roomId = null;
     
     // Remove inline styles to allow CSS to take over
     modal.style.display = '';
