@@ -606,25 +606,6 @@ if ($trialStatus) {
     </div>
 </div>
 
-<!-- Quick Actions - Compact Inline -->
-<div style="padding: 0.875rem 1rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05)); border-radius: var(--radius-lg); border: 1px solid var(--bg-tertiary); display: flex; justify-content: space-between; align-items: center;">
-    <h3 style="font-size: 0.875rem; margin: 0; color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 0.4rem;">
-        <i data-feather="zap" style="width: 16px; height: 16px; color: var(--primary-color);"></i>
-        Quick Actions
-    </h3>
-    <div style="display: flex; gap: 0.5rem;">
-        <a href="<?php echo BASE_URL; ?>/modules/cashbook/add.php" class="btn btn-primary btn-sm">
-            <i data-feather="plus-circle" style="width: 14px; height: 14px;"></i> Input Transaksi
-        </a>
-        <a href="<?php echo BASE_URL; ?>/modules/reports/index.php" class="btn btn-secondary btn-sm">
-            <i data-feather="file-text" style="width: 14px; height: 14px;"></i> Laporan
-        </a>
-        <a href="<?php echo BASE_URL; ?>/modules/divisions/index.php" class="btn btn-secondary btn-sm">
-            <i data-feather="grid" style="width: 14px; height: 14px;"></i> Per Divisi
-        </a>
-    </div>
-</div>
-
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -1448,26 +1429,4 @@ if ($trialStatus) {
     <?php endif; ?>
 </script>
 
-<!-- Quick Actions - Compact -->
-<div style="padding: 1.25rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05)); border-radius: var(--radius-lg); border: 1px solid var(--bg-tertiary);">
-    <h3 style="font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-        <i data-feather="zap" style="width: 18px; height: 18px; color: var(--primary-color);"></i>
-        Quick Actions
-    </h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
-        <a href="<?php echo BASE_URL; ?>/modules/cashbook/add.php" class="btn btn-primary btn-sm">
-            <i data-feather="plus-circle" style="width: 16px; height: 16px;"></i> Input Transaksi
-        </a>
-        <a href="<?php echo BASE_URL; ?>/modules/reports/index.php" class="btn btn-secondary btn-sm">
-            <i data-feather="file-text" style="width: 16px; height: 16px;"></i> Lihat Laporan
-        </a>
-        <a href="<?php echo BASE_URL; ?>/modules/divisions/index.php" class="btn btn-secondary btn-sm">
-            <i data-feather="grid" style="width: 16px; height: 16px;"></i> Per Divisi
-        </a>
-        <a href="<?php echo BASE_URL; ?>/modules/reports/daily.php" class="btn btn-secondary btn-sm">
-            <i data-feather="calendar" style="width: 16px; height: 16px;"></i> Harian
-        </a>
-    </div>
-</div>
 
-<?php include 'includes/footer.php'; ?>
