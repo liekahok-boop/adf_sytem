@@ -4,6 +4,8 @@
  * Dashboard - Main Page
  */
 
+ob_start();
+
 define('APP_ACCESS', true);
 require_once 'config/config.php';
 
