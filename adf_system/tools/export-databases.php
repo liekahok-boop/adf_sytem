@@ -30,7 +30,7 @@ if (isset($_GET['export'])) {
     }
     
     // Generate hosting-compatible name
-    $hostingName = 'adfb2574_' . str_replace('adf_', '', str_replace('narayana_', '', $dbName));
+    $hostingName = 'adfb2574_narayana_' . str_replace(['adf_', 'narayana_'], '', $dbName);
     
     // Export SQL
     $tables = $db->getConnection()->query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$dbName'")->fetchAll(PDO::FETCH_COLUMN);
