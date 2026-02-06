@@ -27,13 +27,10 @@ define('DEVELOPER_LOGO', 'assets/img/developer-logo.png');
 $isProduction = (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false && 
                 strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false);
 
-// Hosting database prefix (cPanel account code)
-define('HOSTING_DB_PREFIX', 'adfb2574_');
-
 if ($isProduction) {
-    // Production (Hosting)
+    // Production (Hosting) - uses existing adfb2574_narayana_db
     define('DB_HOST', 'localhost');
-    define('DB_NAME', HOSTING_DB_PREFIX . 'adf_narayana_db');
+    define('DB_NAME', 'adfb2574_narayana_db');
     define('DB_USER', 'adfb2574_adfsystem');
     define('DB_PASS', '@Nnoc2025');
 } else {

@@ -35,13 +35,16 @@ class Database {
                 }
             }
 
-            // Auto-add hosting prefix if in production
+            // Convert database naming for hosting
             $isProduction = (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false && 
                             strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false);
-            if ($isProduction && defined('HOSTING_DB_PREFIX')) {
-                // Only add prefix if not already present
-                if (strpos($dbName, HOSTING_DB_PREFIX) !== 0) {
-                    $dbName = HOSTING_DB_PREFIX . $dbName;
+            if ($isProduction) {
+                // Convert adf_* to adfb2574_narayana_* on hosting
+                if (strpos($dbName, 'adf_') === 0) {
+                    // adf_narayana_hotel → adfb2574_narayana_hotel
+                    // adf_benscafe → adfb2574_narayana_benscafe
+                    $suffix = substr($dbName, 4); // Remove 'adf_'
+                    $dbName = 'adfb2574_narayana_' . $suffix;
                 }
             }
 
