@@ -37,11 +37,13 @@ if (isset($_GET['export'])) {
     
     $sql = "-- Database: $hostingName\n";
     $sql .= "-- Exported from: $dbName (Local)\n";
-    $sql .= "-- Date: " . date('Y-m-d H:i:s') . "\n\n";
+    $sql .= "-- Date: " . date('Y-m-d H:i:s') . "\n";
+    $sql .= "-- IMPORTANT: Database harus sudah ada di hosting!\n";
+    $sql .= "-- Jangan jalankan di database yang berbeda!\n\n";
     
-    // Drop database if exists (for safety on hosting)
-    $sql .= "DROP DATABASE IF EXISTS `$hostingName`;\n";
-    $sql .= "CREATE DATABASE `$hostingName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n";
+    // DO NOT CREATE DATABASE - user di hosting tidak punya permission!
+    // $sql .= "DROP DATABASE IF EXISTS `$hostingName`;\n";
+    // $sql .= "CREATE DATABASE `$hostingName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n";
     $sql .= "USE `$hostingName`;\n\n";
     
     // Export each table structure + data
