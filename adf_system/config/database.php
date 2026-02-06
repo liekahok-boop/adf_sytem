@@ -35,6 +35,16 @@ class Database {
                 }
             }
 
+            // Auto-add hosting prefix if in production
+            $isProduction = (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false && 
+                            strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false);
+            if ($isProduction && defined('HOSTING_DB_PREFIX')) {
+                // Only add prefix if not already present
+                if (strpos($dbName, HOSTING_DB_PREFIX) !== 0) {
+                    $dbName = HOSTING_DB_PREFIX . $dbName;
+                }
+            }
+
             self::$currentDatabase = $dbName;
 
             $dsn = "mysql:host=" . DB_HOST . ";dbname=" . $dbName . ";charset=" . DB_CHARSET;
