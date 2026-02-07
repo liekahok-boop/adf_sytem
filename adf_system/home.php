@@ -1,10 +1,10 @@
-?php
-**
-* NARAYANA MULTI-BUSINESS SYSTEM
-* Halaman Utama - 3 Link Penting
-*/
-efine('APP_ACCESS', true);
-equire_once 'config/config.php';
+<?php
+/**
+ * NARAYANA MULTI-BUSINESS SYSTEM
+ * Halaman Utama - 3 Link Penting
+ */
+define('APP_ACCESS', true);
+require_once 'config/config.php';
 >
 !DOCTYPE html>
 html lang="id">
@@ -152,8 +152,8 @@ head>
            margin: 5px;
        }
    </style>
-/head>
-body>
+</head>
+<body>
    <div class="container">
        <div class="header">
            <h1>🏢 Narayana Multi-Business</h1>
@@ -197,5 +197,5 @@ body>
            <p>© 2026 Narayana Multi-Business System</p>
        </div>
    </div>
-/body>
-/html>
+</body>
+</html>
