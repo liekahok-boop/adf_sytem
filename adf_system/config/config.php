@@ -28,15 +28,15 @@ $isProduction = (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') === false &&
                 strpos($_SERVER['HTTP_HOST'] ?? '', '127.0.0.1') === false);
 
 if ($isProduction) {
-    // Production (Hosting) - uses existing adfb2574_narayana_db
+    // Production (Hosting) - uses adf_system database prefixed
     define('DB_HOST', 'localhost');
-    define('DB_NAME', 'adfb2574_narayana_db');
+    define('DB_NAME', 'adfb2574_adf_system');
     define('DB_USER', 'adfb2574_adfsystem');
     define('DB_PASS', '@Nnoc2025');
 } else {
-    // Local development
+    // Local development - uses adf_system as master database
     define('DB_HOST', 'localhost');
-    define('DB_NAME', 'adf_narayana_db');
+    define('DB_NAME', 'adf_system');
     define('DB_USER', 'root');
     define('DB_PASS', '');
 }
