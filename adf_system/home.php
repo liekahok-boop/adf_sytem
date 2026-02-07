@@ -5,10 +5,10 @@
  */
 define('APP_ACCESS', true);
 require_once 'config/config.php';
->
-!DOCTYPE html>
-html lang="id">
-head>
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>Narayana Multi-Business System</title>

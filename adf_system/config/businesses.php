@@ -5,20 +5,19 @@
  */
 
 $BUSINESSES = [
-$BUSINESSES = [
     [
         'id' => 1,
         'name' => "Ben's Cafe",
         'database' => 'adf_benscafe',
         'type' => 'restaurant',
-        'active' => true
+        'active' => false
     ],
     [
         'id' => 2,
         'name' => 'Hotel',
         'database' => 'adf_narayana_hotel',
         'type' => 'hotel',
-        'active' => true
+        'active' => false
     ],
     [
         'id' => 3,
