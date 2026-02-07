@@ -48,9 +48,7 @@ if (isPost()) {
         try {
             $db = Database::getInstance();
             $sql = "SELECT id, username, password, role, business_access, is_active FROM users WHERE username = :username";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([':username' => $username]);
-            $currentUser = $stmt->fetch();
+            $currentUser = $db->fetchOne($sql, [':username' => $username]);
             
             if (!$currentUser) {
                 $error = 'Username tidak ditemukan!';
