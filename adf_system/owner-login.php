@@ -45,10 +45,23 @@ if (isPost()) {
         $error = 'Username harus diisi!';
     } else {
         // DEBUG MODE: Skip password check, just check username
+        // IMPORTANT: Must connect to MASTER database for authentication
         try {
-            $db = Database::getInstance();
+            // Get connection to master database directly (not business-specific)
+            $masterDb = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . 'adf_narayana_db' . ";charset=" . DB_CHARSET,
+                DB_USER,
+                DB_PASS,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
+            );
+            
             $sql = "SELECT id, username, password, role, business_access, is_active FROM users WHERE username = :username";
-            $currentUser = $db->fetchOne($sql, [':username' => $username]);
+            $stmt = $masterDb->prepare($sql);
+            $stmt->execute([':username' => $username]);
+            $currentUser = $stmt->fetch();
             
             if (!$currentUser) {
                 $error = 'Username tidak ditemukan!';
