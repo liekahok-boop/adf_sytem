@@ -2,14 +2,15 @@
 /**
  * ADF SYSTEM - Multi Business Management
  * Login Page
+ * IMPORTANT: Always use adf_system database for login!
  */
 
 define('APP_ACCESS', true);
-// FORCE adf_system for login - never use business database here
-define('ACTIVE_BUSINESS_ID', 'adf_system');
-
 require_once 'config/config.php';
-require_once 'config/database.php';
+
+// Override database connection to ALWAYS use adf_system on login page
+// Force direct connection without business-specific logic
+$_SESSION['_login_page_force_adf_system'] = true;
 
 // Check if database exists
 try {
@@ -22,6 +23,7 @@ try {
 
 require_once 'includes/auth.php';
 require_once 'includes/functions.php';
+require_once 'config/database.php';
 
 $auth = new Auth();
 $db = Database::getInstance();

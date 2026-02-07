@@ -25,6 +25,9 @@ class Database {
                 if ($isProduction) {
                     // Production: always use default database
                     $dbName = DB_NAME;
+                } elseif (isset($_SESSION['_login_page_force_adf_system']) && $_SESSION['_login_page_force_adf_system']) {
+                    // Login page: force adf_system database
+                    $dbName = DB_NAME;
                 } elseif (defined('ACTIVE_BUSINESS_ID')) {
                     // Local: use business-specific database
                     require_once __DIR__ . '/../includes/business_helper.php';
