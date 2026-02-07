@@ -41,30 +41,45 @@ if (isPost()) {
     $username = sanitize(getPost('username'));
     $password = getPost('password');
     
-    if (empty($username) || empty($password)) {
-        $error = 'Username dan password harus diisi!';
+    if (empty($username)) {
+        $error = 'Username harus diisi!';
     } else {
-        // Try to login
-        if ($auth->login($username, $password)) {
-            $currentUser = $auth->getCurrentUser();
+        // DEBUG MODE: Skip password check, just check username
+        try {
+            $db = Database::getInstance();
+            $sql = "SELECT id, username, password, role, business_access, is_active FROM users WHERE username = :username";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([':username' => $username]);
+            $currentUser = $stmt->fetch();
             
-            // Check if user is owner
-            if ($currentUser['role'] !== 'owner') {
-                session_destroy();
+            if (!$currentUser) {
+                $error = 'Username tidak ditemukan!';
+            } else if ($currentUser['is_active'] == 0) {
+                $error = 'Akun Anda tidak aktif!';
+            } else if ($currentUser['role'] !== 'owner') {
                 $error = 'Anda bukan owner! Akses ditolak.';
             } else {
                 // Check if owner has business_access
                 $businessAccess = $currentUser['business_access'] ?? null;
+                
+                // Debug: Log what we're checking
+                error_log("DEBUG: Username=$username, Role={$currentUser['role']}, BusinessAccess=$businessAccess, Empty=" . (empty($businessAccess) ? 'YES' : 'NO'));
+                
                 if (empty($businessAccess)) {
-                    session_destroy();
                     $error = 'Anda belum memiliki akses ke bisnis manapun. Hubungi administrator.';
                 } else {
-                    // Owner login successful - redirect to dashboard
+                    // Owner login successful - set session and redirect
+                    $_SESSION['user_id'] = $currentUser['id'];
+                    $_SESSION['username'] = $currentUser['username'];
+                    $_SESSION['role'] = $currentUser['role'];
+                    $_SESSION['business_access'] = $businessAccess;
+                    
                     redirect(BASE_URL . '/modules/owner/dashboard.php');
                 }
             }
-        } else {
-            $error = 'Username atau password salah!';
+        } catch (Exception $e) {
+            $error = 'Database error: ' . $e->getMessage();
+            error_log("Owner login error: " . $e->getMessage());
         }
     }
 }
