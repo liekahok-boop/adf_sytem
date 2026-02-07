@@ -93,6 +93,22 @@ function setActiveBusinessId($businessId) {
  */
 function getActiveBusinessConfig() {
     $businessId = getActiveBusinessId();
+    
+    // Safe fallback for adf_system (used during login)
+    if ($businessId === 'adf_system') {
+        return [
+            'business_id' => 'adf_system',
+            'name' => 'System',
+            'database' => 'adf_system',
+            'business_type' => 'system',
+            'theme' => [
+                'color_primary' => '#667eea',
+                'color_secondary' => '#764ba2',
+                'icon' => '⚙️'
+            ]
+        ];
+    }
+    
     $businessFile = __DIR__ . '/../config/businesses/' . $businessId . '.php';
     
     if (file_exists($businessFile)) {
@@ -103,6 +119,7 @@ function getActiveBusinessConfig() {
     return [
         'business_id' => $businessId,
         'name' => 'Unknown Business',
+        'database' => 'adf_system',
         'business_type' => 'general',
         'theme' => [
             'color_primary' => '#4338ca',
