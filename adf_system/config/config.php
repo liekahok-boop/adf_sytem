@@ -97,14 +97,20 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../includes/business_helper.php';
 
-$activeBusinessId = getActiveBusinessId();
-$BUSINESS_CONFIG = getActiveBusinessConfig();
+// Only auto-detect active business if not already defined (e.g., by login.php)
+if (!defined('ACTIVE_BUSINESS_ID')) {
+    $activeBusinessId = getActiveBusinessId();
+    $BUSINESS_CONFIG = getActiveBusinessConfig();
 
-define('ACTIVE_BUSINESS_ID', $activeBusinessId);
-define('BUSINESS_NAME', $BUSINESS_CONFIG['name']);
-define('BUSINESS_TYPE', $BUSINESS_CONFIG['business_type']);
-define('BUSINESS_ICON', $BUSINESS_CONFIG['theme']['icon']);
-define('BUSINESS_COLOR', $BUSINESS_CONFIG['theme']['color_primary']);
+    define('ACTIVE_BUSINESS_ID', $activeBusinessId);
+    define('BUSINESS_NAME', $BUSINESS_CONFIG['name']);
+    define('BUSINESS_TYPE', $BUSINESS_CONFIG['business_type']);
+    define('BUSINESS_ICON', $BUSINESS_CONFIG['theme']['icon']);
+    define('BUSINESS_COLOR', $BUSINESS_CONFIG['theme']['color_primary']);
+} else {
+    // If already defined, get config for that business
+    $BUSINESS_CONFIG = getActiveBusinessConfig();
+}
 
 // ============================================
 // LANGUAGE CONFIGURATION
